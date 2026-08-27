@@ -141,7 +141,7 @@ function renderAll(){renderHome();renderWardrobe();renderSavedOutfits()}
 
 function itemSeasons(i){return Array.isArray(i.seasons)&&i.seasons.length?i.seasons:[i.season||'all']}
 function itemOccasions(i){return Array.isArray(i.occasions)&&i.occasions.length?i.occasions:[i.occasion||'casual']}
-function seasonMatches(i,season){if(season==='all')return true;const ss=itemSeasons(i);if(ss.includes('all'))return true;if(season==='warm')return ss.some(x=>['warm','spring','summer'].includes(x));if(season==='cold')return ss.some(x=>['cold','fall','winter'].includes(x));return ss.includes(season)}
+function seasonMatches(i,season){if(season==='all')return true;const ss=itemSeasons(i);if(ss.includes('all'))return true;/* هوا=گرم را مثل شرایط تابستانی در نظر می‌گیریم؛ صرفاً مناسبِ بهار بودن کافی نیست. */if(season==='warm')return ss.some(x=>['warm','summer'].includes(x));if(season==='cold')return ss.some(x=>['cold','fall','winter'].includes(x));return ss.includes(season)}
 function colorPairScore(a,b){
  if(!a||!b)return 0;
  if(a===b)return ['black','white','gray','navy','beige'].includes(a)?9:6;
@@ -201,8 +201,15 @@ function generateOutfit(){
    combos.push({items:arr,...result});
  }
  combos.sort((a,b)=>b.total-a.total);
+ // فقط ست‌های با امتیاز 80 یا بیشتر اجازه نمایش دارند.
+ const qualified=combos.filter(c=>c.total>=80);
  const unique=[];const seen=new Set();
- for(const c of combos){const key=c.items.map(i=>i.id).sort().join('|');if(!seen.has(key)){seen.add(key);unique.push(c)}if(unique.length===3)break;}
+ for(const c of qualified){const key=c.items.map(i=>i.id).sort().join('|');if(!seen.has(key)){seen.add(key);unique.push(c)}if(unique.length===3)break;}
+ if(!unique.length){
+   window.currentSuggestedOutfits=[];window.currentSuggestedOutfit=null;
+   document.getElementById('outfitResult').innerHTML=`<div class="empty">برای این شرایط، ست مناسبی در کمدت پیدا نشد.</div>`;
+   return;
+ }
  window.currentSuggestedOutfits=unique.map(c=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),itemIds:c.items.map(i=>i.id),total:c.total,breakdown:c.breakdown,occasion,season,createdAt:Date.now()}));
  window.currentSuggestedOutfit=window.currentSuggestedOutfits[0];
  const labels=['بهترین انتخاب','انتخاب دوم','انتخاب سوم'];
