@@ -1,5 +1,5 @@
 
-const CACHE='wardrobe-v2-2-3';
+const CACHE='wardrobe-v2-4';
 const ASSETS=['./','index.html','style.css','app.js','manifest.json'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));

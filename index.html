@@ -69,10 +69,22 @@
     <section id="add" class="page">
       <div class="section-head"><h2>افزودن لباس</h2><button class="text-btn" onclick="goPage('wardrobe')">بازگشت به کمد</button></div>
       <form id="itemForm" class="form card">
-        <label>عکس لباس
-          <input type="file" id="photo" accept="image/*" capture="environment">
-        </label>
-        <div id="previewWrap" class="preview-wrap hidden"><img id="preview" alt=""></div>
+        <div class="photo-field">
+          <span class="field-title">عکس لباس</span>
+          <div class="photo-actions">
+            <button type="button" class="photo-choice" onclick="openCamera()">📷 عکس گرفتن</button>
+            <button type="button" class="photo-choice" onclick="openGallery()">🖼 انتخاب از گالری</button>
+          </div>
+          <input type="file" id="cameraPhoto" accept="image/*" capture="environment" hidden>
+          <input type="file" id="galleryPhoto" accept="image/*" hidden>
+          <div id="previewWrap" class="preview-wrap hidden">
+            <img id="preview" alt="">
+            <div class="preview-actions">
+              <button type="button" class="secondary-btn" onclick="changePhoto()">تغییر عکس</button>
+              <button type="button" class="danger-btn" onclick="removePhoto()">حذف عکس</button>
+            </div>
+          </div>
+        </div>
 
         <label>نام لباس
           <input id="name" required placeholder="مثلاً شلوار جین آبی">

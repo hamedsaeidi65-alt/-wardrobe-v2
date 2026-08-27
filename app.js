@@ -226,7 +226,7 @@ function renderSavedOutfits(){
 document.getElementById('itemForm').addEventListener('submit', async e=>{
  e.preventDefault();
  let photoData='';
- const f=document.getElementById('photo').files[0];
+ const f=window.selectedPhotoFile || null;
  if(f) photoData=await compressImage(f,900,.78);
  const item={
    id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
@@ -247,14 +247,31 @@ document.getElementById('itemForm').addEventListener('submit', async e=>{
    createdAt:Date.now()
  };
  const items=loadItems(); items.push(item); saveItems(items);
- e.target.reset(); document.getElementById('previewWrap').classList.add('hidden');
+ e.target.reset(); removePhoto();
  goPage('wardrobe');
 });
-document.getElementById('photo').addEventListener('change', e=>{
+function openCamera(){document.getElementById('cameraPhoto').click()}
+function openGallery(){document.getElementById('galleryPhoto').click()}
+function handlePhotoSelection(e){
  const f=e.target.files[0]; if(!f)return;
- const u=URL.createObjectURL(f); const p=document.getElementById('preview'); p.src=u;
+ window.selectedPhotoFile=f;
+ const u=URL.createObjectURL(f);
+ document.getElementById('preview').src=u;
  document.getElementById('previewWrap').classList.remove('hidden');
-});
+}
+document.getElementById('cameraPhoto').addEventListener('change',handlePhotoSelection);
+document.getElementById('galleryPhoto').addEventListener('change',handlePhotoSelection);
+function removePhoto(){
+ window.selectedPhotoFile=null;
+ document.getElementById('cameraPhoto').value='';
+ document.getElementById('galleryPhoto').value='';
+ document.getElementById('preview').removeAttribute('src');
+ document.getElementById('previewWrap').classList.add('hidden');
+}
+function changePhoto(){
+ removePhoto();
+ openGallery();
+}
 function compressImage(file,maxW=900,quality=.78){
  return new Promise(resolve=>{
    const img=new Image(), fr=new FileReader();

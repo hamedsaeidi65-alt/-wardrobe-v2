@@ -24,3 +24,10 @@ app.js
 style.css
 sw.js
 README.txt
+
+
+V2.4:
+- دکمه جدا برای دوربین و گالری
+- پیش‌نمایش عکس
+- تغییر یا حذف عکس قبل از ذخیره
+- cache version bump
