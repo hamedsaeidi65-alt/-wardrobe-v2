@@ -72,65 +72,68 @@
         <label>عکس لباس
           <input type="file" id="photo" accept="image/*" capture="environment">
         </label>
-        <div id="previewWrap" class="preview-wrap hidden">
-          <img id="preview" alt="">
-        </div>
+        <div id="previewWrap" class="preview-wrap hidden"><img id="preview" alt=""></div>
 
         <label>نام لباس
           <input id="name" required placeholder="مثلاً شلوار جین آبی">
         </label>
 
         <label>دسته‌بندی
-          <select id="category" required>
+          <select id="category" required onchange="renderDynamicFields()">
             <option value="top">بالاتنه</option>
             <option value="bottom">پایین‌تنه</option>
-            <option value="outer">رویه</option>
+            <option value="outer">لایه بیرونی</option>
             <option value="shoe">کفش</option>
             <option value="accessory">اکسسوری</option>
           </select>
         </label>
 
-        <label>فرم / Fit
-          <select id="fit">
-            <option value="regular">Regular</option>
-            <option value="slim">Slim</option>
-            <option value="straight">Straight</option>
-            <option value="relaxed">Relaxed</option>
-            <option value="baggy">Baggy</option>
-            <option value="oversized">Oversized</option>
-          </select>
-        </label>
+        <div id="dynamicFields"></div>
 
-        <label>رنگ غالب
+        <label>رنگ اصلی
           <select id="color">
-            <option value="black">مشکی</option>
-            <option value="white">سفید</option>
-            <option value="gray">طوسی</option>
-            <option value="navy">سرمه‌ای</option>
-            <option value="blue">آبی</option>
-            <option value="beige">بژ</option>
-            <option value="brown">قهوه‌ای</option>
-            <option value="green">سبز</option>
-            <option value="red">قرمز</option>
-            <option value="other">سایر</option>
+            <option value="black">مشکی</option><option value="white">سفید</option>
+            <option value="gray">طوسی</option><option value="navy">سرمه‌ای</option>
+            <option value="blue">آبی</option><option value="beige">بژ</option>
+            <option value="brown">قهوه‌ای</option><option value="green">سبز</option>
+            <option value="red">قرمز</option><option value="other">سایر</option>
           </select>
         </label>
 
-        <label>فصل
-          <select id="season">
-            <option value="all">چهارفصل</option>
-            <option value="warm">هوای گرم</option>
-            <option value="cold">هوای سرد</option>
+        <label>رنگ دوم
+          <select id="secondaryColor">
+            <option value="">ندارد / تک‌رنگ</option>
+            <option value="black">مشکی</option><option value="white">سفید</option>
+            <option value="gray">طوسی</option><option value="navy">سرمه‌ای</option>
+            <option value="blue">آبی</option><option value="beige">بژ</option>
+            <option value="brown">قهوه‌ای</option><option value="green">سبز</option>
+            <option value="red">قرمز</option><option value="other">سایر</option>
           </select>
         </label>
 
-        <label>موقعیت استفاده
-          <select id="occasion">
-            <option value="casual">روزمره</option>
-            <option value="smart">اسمارت کژوال</option>
-            <option value="sport">اسپرت</option>
-            <option value="formal">رسمی</option>
-          </select>
+        <fieldset>
+          <legend>فصل‌های مناسب</legend>
+          <div class="chips">
+            <label><input type="checkbox" name="seasons" value="spring">بهار</label>
+            <label><input type="checkbox" name="seasons" value="summer">تابستان</label>
+            <label><input type="checkbox" name="seasons" value="autumn">پاییز</label>
+            <label><input type="checkbox" name="seasons" value="winter">زمستان</label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>موقعیت استفاده</legend>
+          <div class="chips">
+            <label><input type="checkbox" name="occasions" value="casual">روزمره</label>
+            <label><input type="checkbox" name="occasions" value="smart">اسمارت کژوال</label>
+            <label><input type="checkbox" name="occasions" value="sport">اسپرت</label>
+            <label><input type="checkbox" name="occasions" value="formal">رسمی</label>
+          </div>
+        </fieldset>
+
+        <label>میزان رسمی بودن
+          <input id="formality" type="range" min="1" max="5" value="2">
+          <div class="range-label"><span>خیلی راحت</span><span>خیلی رسمی</span></div>
         </label>
 
         <button class="primary" type="submit">ذخیره در کمد</button>

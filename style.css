@@ -52,3 +52,11 @@ input,select{width:100%;background:var(--card2);color:var(--text);border:1px sol
 .profile-mark{width:58px;height:58px;border-radius:18px;background:var(--gold);color:#151515;display:grid;place-items:center;font-weight:900;font-size:26px;margin-bottom:16px}
 .profile-row{display:flex;justify-content:space-between;gap:15px;padding:14px 0;border-top:1px solid var(--line);font-size:14px}
 .profile-row span{color:var(--muted)}
+
+fieldset{border:1px solid var(--line);border-radius:15px;padding:12px}
+legend{padding:0 6px;color:#d9d6cf;font-size:14px}
+.chips{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.chips label{display:flex;align-items:center;gap:8px;background:var(--card2);padding:10px;border-radius:12px;font-size:13px}
+.chips input{width:auto}
+.range-label{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
+#dynamicFields{display:grid;gap:14px}

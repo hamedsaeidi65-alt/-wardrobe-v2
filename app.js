@@ -23,6 +23,49 @@ const fitPairs={
  oversized:['slim','straight']
 };
 
+
+const CATEGORY_FIELDS={
+ top:{
+  subtype:['تی‌شرت','پولو','پیراهن','هودی','سویشرت','بافت','تاپ'],
+  fit:['Slim','Regular','Relaxed','Oversized'],
+  extraLabel:'طرح', extra:['ساده','راه‌راه','چهارخانه','گرافیکی','طرح‌دار']
+ },
+ bottom:{
+  subtype:['جین','کتان','پارچه‌ای','کارگو','جاگر','شلوارک'],
+  fit:['Skinny','Slim','Straight','Relaxed','Baggy','Wide'],
+  extraLabel:'فاق', extra:['کوتاه','متوسط','بلند']
+ },
+ outer:{
+  subtype:['کت','بلیزر','کاپشن','اورشرت','بارانی','جلیقه'],
+  fit:['Slim','Regular','Relaxed','Oversized'],
+  extraLabel:'وزن لایه', extra:['سبک','متوسط','سنگین']
+ },
+ shoe:{
+  subtype:['کتانی','لوفر','کفش رسمی','بوت','صندل'],
+  fit:['Regular'],
+  extraLabel:'استایل کفش', extra:['اسپرت','کژوال','اسمارت کژوال','رسمی']
+ },
+ accessory:{
+  subtype:['ساعت','عینک','کمربند','کلاه','کیف','دستبند'],
+  fit:['Regular'],
+  extraLabel:'استایل', extra:['اسپرت','کژوال','اسمارت','رسمی']
+ }
+};
+function optionsHtml(arr){return arr.map(x=>`<option value="${x}">${x}</option>`).join('')}
+function renderDynamicFields(){
+ const c=document.getElementById('category').value, s=CATEGORY_FIELDS[c];
+ document.getElementById('dynamicFields').innerHTML=`
+  <label>نوع دقیق
+   <select id="subtype">${optionsHtml(s.subtype)}</select>
+  </label>
+  ${c!=='shoe'&&c!=='accessory'?`<label>فرم / برش
+   <select id="fit">${optionsHtml(s.fit)}</select>
+  </label>`:`<input type="hidden" id="fit" value="Regular">`}
+  <label>${s.extraLabel}
+   <select id="extra">${optionsHtml(s.extra)}</select>
+  </label>`;
+}
+function checkedValues(name){return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(x=>x.value)}
 function loadItems(){return JSON.parse(localStorage.getItem(KEY)||'[]')}
 function loadSaved(){return JSON.parse(localStorage.getItem(SAVED_KEY)||'[]')}
 function saveSaved(items){localStorage.setItem(SAVED_KEY,JSON.stringify(items)); renderSavedOutfits()}
@@ -46,7 +89,7 @@ function itemCard(i){
    <div class="item-img">${img}</div>
    <div class="item-info">
      <strong>${escapeHtml(i.name)}</strong>
-     <div class="meta">${catFa(i.category)} · ${colorFa(i.color)}<br>${fitFa(i.fit)} · ${i.occasion}</div>
+     <div class="meta">${catFa(i.category)}${i.subtype?' · '+i.subtype:''} · ${colorFa(i.color)}<br>${fitFa(i.fit||'Regular')}${i.extra?' · '+i.extra:''}</div>
      <button class="delete" onclick="removeItem('${i.id}')">حذف</button>
    </div>
  </div>`
@@ -77,8 +120,8 @@ function pairScore(a,b,occasion,season){
  if((compat[a.color]||[]).includes(b.color)){score+=20;reasons.push('هماهنگی رنگ خوب')}
  else {score-=8}
  if((fitPairs[a.fit]||[]).includes(b.fit)){score+=15;reasons.push('تناسب فیت مناسب')}
- if(a.occasion===occasion) score+=6;
- if(b.occasion===occasion) score+=6;
+ if((a.occasions||[a.occasion]).includes(occasion)) score+=6;
+ if((b.occasions||[b.occasion]).includes(occasion)) score+=6;
  if(season==='all' || a.season==='all' || a.season===season) score+=3;
  if(season==='all' || b.season==='all' || b.season===season) score+=3;
  return {score:Math.max(0,Math.min(100,score)), reasons};
@@ -121,10 +164,16 @@ document.getElementById('itemForm').addEventListener('submit', async e=>{
    id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
    name:document.getElementById('name').value.trim(),
    category:document.getElementById('category').value,
-   fit:document.getElementById('fit').value,
+   subtype:document.getElementById('subtype')?.value||'',
+   fit:document.getElementById('fit')?.value||'Regular',
+   extra:document.getElementById('extra')?.value||'',
    color:document.getElementById('color').value,
-   season:document.getElementById('season').value,
-   occasion:document.getElementById('occasion').value,
+   secondaryColor:document.getElementById('secondaryColor').value,
+   seasons:checkedValues('seasons'),
+   occasions:checkedValues('occasions'),
+   formality:Number(document.getElementById('formality').value),
+   season:'all',
+   occasion:checkedValues('occasions')[0]||'casual',
    photo:photoData,
    createdAt:Date.now()
  };
@@ -156,4 +205,5 @@ document.getElementById('installBtn').addEventListener('click',async()=>{
  if(!deferredPrompt)return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null;
 });
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+renderDynamicFields();
 renderAll();
