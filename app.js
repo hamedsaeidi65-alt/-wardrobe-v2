@@ -27,44 +27,68 @@ const fitPairs={
 const CATEGORY_FIELDS={
  top:{
   subtype:['تی‌شرت','پولو','پیراهن','هودی','سویشرت','بافت','تاپ'],
-  fit:['Slim','Regular','Relaxed','Oversized'],
-  extraLabel:'طرح', extra:['ساده','راه‌راه','چهارخانه','گرافیکی','طرح‌دار']
+  fit:['Slim','Regular','Relaxed','Oversized']
  },
  bottom:{
-  subtype:['جین','کتان','پارچه‌ای','کارگو','جاگر','شلوارک'],
-  fit:['Skinny','Slim','Straight','Relaxed','Baggy','Wide'],
-  extraLabel:'فاق', extra:['کوتاه','متوسط','بلند']
+  subtype:['جین','چینو / کتان','پارچه‌ای','کارگو','جاگر','شلوارک'],
+  fit:['Skinny','Slim','Straight','Relaxed','Baggy','Wide']
  },
  outer:{
-  subtype:['کت','بلیزر','کاپشن','اورشرت','بارانی','جلیقه'],
-  fit:['Slim','Regular','Relaxed','Oversized'],
-  extraLabel:'وزن لایه', extra:['سبک','متوسط','سنگین']
+  subtype:['کت','بلیزر','کاپشن','اورشرت','بارانی','پالتو','جلیقه'],
+  fit:['Slim','Regular','Relaxed','Oversized']
  },
- shoe:{
-  subtype:['کتانی','لوفر','کفش رسمی','بوت','صندل'],
-  fit:['Regular'],
-  extraLabel:'استایل کفش', extra:['اسپرت','کژوال','اسمارت کژوال','رسمی']
- },
- accessory:{
-  subtype:['ساعت','عینک','کمربند','کلاه','کیف','دستبند'],
-  fit:['Regular'],
-  extraLabel:'استایل', extra:['اسپرت','کژوال','اسمارت','رسمی']
- }
+ shoe:{subtype:['کتانی','لوفر','کفش رسمی','بوت','صندل'],fit:['Regular']},
+ accessory:{subtype:['ساعت','عینک','کمربند','کلاه','کیف','دستبند'],fit:['Regular']}
+};
+const SUBTYPE_FIELDS={
+ 'تی‌شرت':[{id:'pattern',label:'طرح',options:['ساده','گرافیکی','راه‌راه','طرح‌دار']},{id:'neck',label:'یقه',options:['گرد','هفت','هنلی']},{id:'sleeve',label:'آستین',options:['کوتاه','بلند']}],
+ 'پولو':[{id:'pattern',label:'طرح',options:['ساده','راه‌راه','طرح‌دار']},{id:'sleeve',label:'آستین',options:['کوتاه','بلند']}],
+ 'پیراهن':[{id:'pattern',label:'طرح',options:['ساده','راه‌راه','چهارخانه','طرح‌دار']},{id:'collar',label:'نوع یقه',options:['کلاسیک','باتن‌داون','کمپ / کوبایی','ماندارین']},{id:'sleeve',label:'آستین',options:['کوتاه','بلند']}],
+ 'هودی':[{id:'pattern',label:'طرح',options:['ساده','گرافیکی','طرح‌دار']},{id:'hoodieType',label:'مدل',options:['جلو بسته','زیپ‌دار']}],
+ 'سویشرت':[{id:'pattern',label:'طرح',options:['ساده','گرافیکی','طرح‌دار']},{id:'sweatType',label:'مدل',options:['جلو بسته','زیپ‌دار']}],
+ 'بافت':[{id:'pattern',label:'طرح',options:['ساده','بافت‌دار','راه‌راه','طرح‌دار']},{id:'neck',label:'یقه',options:['گرد','هفت','یقه‌اسکی','کاردیگان']}],
+ 'جین':[{id:'rise',label:'فاق',options:['کوتاه','متوسط','بلند']},{id:'wash',label:'شست / ظاهر',options:['تیره','متوسط','روشن','سنگ‌شور','زاپ‌دار']}],
+ 'چینو / کتان':[{id:'rise',label:'فاق',options:['کوتاه','متوسط','بلند']},{id:'pleat',label:'جلوی شلوار',options:['ساده','پیلی‌دار']}],
+ 'پارچه‌ای':[{id:'rise',label:'فاق',options:['کوتاه','متوسط','بلند']},{id:'pleat',label:'جلوی شلوار',options:['ساده','تک‌پیلی','دوپیلی']}],
+ 'کارگو':[{id:'rise',label:'فاق',options:['کوتاه','متوسط','بلند']},{id:'cargoStyle',label:'استایل',options:['مینیمال','جیب‌دار کلاسیک','تکنیکال']}],
+ 'جاگر':[{id:'material',label:'جنس',options:['نخی','دورس','نایلونی / تکنیکال']}],
+ 'شلوارک':[{id:'length',label:'قد',options:['بالای زانو','روی زانو','زیر زانو']},{id:'styleDetail',label:'استایل',options:['کژوال','ورزشی','چینو','کارگو']}],
+ 'کت':[{id:'structure',label:'ساختار',options:['بدون ساختار','نیمه‌ساختار','ساختار رسمی']},{id:'weight',label:'وزن لایه',options:['سبک','متوسط','سنگین']}],
+ 'بلیزر':[{id:'structure',label:'ساختار',options:['بدون ساختار','نیمه‌ساختار','ساختار رسمی']},{id:'buttons',label:'فرم دکمه',options:['تک‌ردیفه','دبل‌برست']}],
+ 'کاپشن':[{id:'jacketType',label:'مدل',options:['بامبر','پافر','دنیم','چرم','تکنیکال']},{id:'weight',label:'وزن لایه',options:['سبک','متوسط','سنگین']}],
+ 'اورشرت':[{id:'material',label:'جنس',options:['نخی','فلانل','دنیم','پشمی']},{id:'weight',label:'وزن لایه',options:['سبک','متوسط','سنگین']}],
+ 'بارانی':[{id:'length',label:'قد',options:['کوتاه','متوسط','بلند']},{id:'weight',label:'وزن لایه',options:['سبک','متوسط']}],
+ 'پالتو':[{id:'length',label:'قد',options:['کوتاه','متوسط','بلند']},{id:'weight',label:'وزن لایه',options:['متوسط','سنگین']}],
+ 'کتانی':[{id:'shoeStyle',label:'استایل کفش',options:['مینیمال','رانینگ','رترو','بسکتبال','اسکیت']}],
+ 'لوفر':[{id:'shoeStyle',label:'مدل',options:['پنی','تسل','هورسبیت']},{id:'shoeFormality',label:'استایل',options:['کژوال','اسمارت کژوال','رسمی']}],
+ 'کفش رسمی':[{id:'shoeStyle',label:'مدل',options:['آکسفورد','دربی','مونک‌استرپ']},{id:'shoeFormality',label:'استایل',options:['اسمارت کژوال','رسمی']}],
+ 'بوت':[{id:'shoeStyle',label:'مدل',options:['چلسی','چوکا','ورک','کامبت']},{id:'shoeFormality',label:'استایل',options:['کژوال','اسمارت کژوال']}],
+ 'ساعت':[{id:'accessoryStyle',label:'استایل',options:['اسپرت','روزمره','کلاسیک','رسمی']}],
+ 'عینک':[{id:'accessoryStyle',label:'استایل',options:['اسپرت','کژوال','کلاسیک','مینیمال']}],
+ 'کمربند':[{id:'accessoryStyle',label:'استایل',options:['کژوال','اسمارت','رسمی']}],
+ 'کلاه':[{id:'accessoryStyle',label:'مدل',options:['کپ','باکت','بینی','فدورا']}],
+ 'کیف':[{id:'accessoryStyle',label:'مدل',options:['کوله','کراس‌بادی','توت','دستی / اداری']}]
 };
 function optionsHtml(arr){return arr.map(x=>`<option value="${x}">${x}</option>`).join('')}
 function renderDynamicFields(){
  const c=document.getElementById('category').value, s=CATEGORY_FIELDS[c];
  document.getElementById('dynamicFields').innerHTML=`
   <label>نوع دقیق
-   <select id="subtype">${optionsHtml(s.subtype)}</select>
+   <select id="subtype" onchange="renderSubtypeFields()">${optionsHtml(s.subtype)}</select>
   </label>
   ${c!=='shoe'&&c!=='accessory'?`<label>فرم / برش
    <select id="fit">${optionsHtml(s.fit)}</select>
   </label>`:`<input type="hidden" id="fit" value="Regular">`}
-  <label>${s.extraLabel}
-   <select id="extra">${optionsHtml(s.extra)}</select>
-  </label>`;
+  <div id="subtypeFields"></div>`;
+ renderSubtypeFields();
 }
+function renderSubtypeFields(){
+ const subtype=document.getElementById('subtype')?.value||'';
+ const box=document.getElementById('subtypeFields'); if(!box)return;
+ const fields=SUBTYPE_FIELDS[subtype]||[];
+ box.innerHTML=fields.map(f=>`<label>${f.label}<select class="smart-detail" data-detail-id="${f.id}">${optionsHtml(f.options)}</select></label>`).join('');
+}
+function smartDetails(){const o={};document.querySelectorAll('.smart-detail').forEach(el=>o[el.dataset.detailId]=el.value);return o}
 function checkedValues(name){return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(x=>x.value)}
 function loadItems(){return JSON.parse(localStorage.getItem(KEY)||'[]')}
 function loadSaved(){return JSON.parse(localStorage.getItem(SAVED_KEY)||'[]')}
@@ -119,7 +143,7 @@ function pairScore(a,b,occasion,season){
  let score=50, reasons=[];
  if((compat[a.color]||[]).includes(b.color)){score+=20;reasons.push('هماهنگی رنگ خوب')}
  else {score-=8}
- if((fitPairs[a.fit]||[]).includes(b.fit)){score+=15;reasons.push('تناسب فیت مناسب')}
+ if((fitPairs[String(a.fit||'').toLowerCase()]||[]).includes(String(b.fit||'').toLowerCase())){score+=15;reasons.push('تناسب فیت مناسب')}
  if((a.occasions||[a.occasion]).includes(occasion)) score+=6;
  if((b.occasions||[b.occasion]).includes(occasion)) score+=6;
  if(season==='all' || a.season==='all' || a.season===season) score+=3;
@@ -167,6 +191,7 @@ document.getElementById('itemForm').addEventListener('submit', async e=>{
    subtype:document.getElementById('subtype')?.value||'',
    fit:document.getElementById('fit')?.value||'Regular',
    extra:document.getElementById('extra')?.value||'',
+   details:smartDetails(),
    color:document.getElementById('color').value,
    secondaryColor:document.getElementById('secondaryColor').value,
    seasons:checkedValues('seasons'),
