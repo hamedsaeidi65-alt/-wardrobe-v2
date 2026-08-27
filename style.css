@@ -60,3 +60,5 @@ legend{padding:0 6px;color:#d9d6cf;font-size:14px}
 .chips input{width:auto}
 .range-label{display:flex;justify-content:space-between;color:var(--muted);font-size:11px}
 #dynamicFields{display:grid;gap:14px}
+
+.rank-label{color:var(--gold);font-size:13px;font-weight:800;margin-bottom:8px}.score-explain{max-width:65%;line-height:1.8;text-align:left}.outfit-card .item-info .delete{display:none}

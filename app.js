@@ -139,33 +139,77 @@ function renderWardrobe(){
 }
 function renderAll(){renderHome();renderWardrobe();renderSavedOutfits()}
 
-function pairScore(a,b,occasion,season){
- let score=50, reasons=[];
- if((compat[a.color]||[]).includes(b.color)){score+=20;reasons.push('هماهنگی رنگ خوب')}
- else {score-=8}
- if((fitPairs[String(a.fit||'').toLowerCase()]||[]).includes(String(b.fit||'').toLowerCase())){score+=15;reasons.push('تناسب فیت مناسب')}
- if((a.occasions||[a.occasion]).includes(occasion)) score+=6;
- if((b.occasions||[b.occasion]).includes(occasion)) score+=6;
- if(season==='all' || a.season==='all' || a.season===season) score+=3;
- if(season==='all' || b.season==='all' || b.season===season) score+=3;
- return {score:Math.max(0,Math.min(100,score)), reasons};
+function itemSeasons(i){return Array.isArray(i.seasons)&&i.seasons.length?i.seasons:[i.season||'all']}
+function itemOccasions(i){return Array.isArray(i.occasions)&&i.occasions.length?i.occasions:[i.occasion||'casual']}
+function seasonMatches(i,season){if(season==='all')return true;const ss=itemSeasons(i);if(ss.includes('all'))return true;if(season==='warm')return ss.some(x=>['warm','spring','summer'].includes(x));if(season==='cold')return ss.some(x=>['cold','fall','winter'].includes(x));return ss.includes(season)}
+function colorPairScore(a,b){
+ if(!a||!b)return 0;
+ if(a===b)return ['black','white','gray','navy','beige'].includes(a)?9:6;
+ if((compat[a]||[]).includes(b)||(compat[b]||[]).includes(a))return 10;
+ return 3;
+}
+function fitPairScore(top,bottom){
+ const a=String(top.fit||'regular').toLowerCase(),b=String(bottom.fit||'regular').toLowerCase();
+ const excellent={slim:['straight','regular','relaxed','wide'],regular:['skinny','slim','straight','regular','relaxed','wide'],relaxed:['skinny','slim','straight','regular'],oversized:['skinny','slim','straight','regular']};
+ if((excellent[a]||[]).includes(b))return 25;
+ if(a===b)return 18;
+ return 13;
+}
+function occasionScore(items,occasion){
+ const vals=items.map(i=>itemOccasions(i));
+ const hits=vals.filter(v=>v.includes(occasion)).length;
+ return Math.round(20*hits/items.length);
+}
+function seasonScore(items,season){
+ if(season==='all')return 15;
+ const hits=items.filter(i=>seasonMatches(i,season)).length;
+ return Math.round(15*hits/items.length);
+}
+function targetFormality(occasion){return ({sport:1,casual:2,smart:3,formal:5})[occasion]||2}
+function formalityScore(items,occasion){
+ const target=targetFormality(occasion),avg=items.reduce((s,i)=>s+Number(i.formality||2),0)/items.length;
+ return Math.max(0,10-Math.round(Math.abs(avg-target)*3));
+}
+function evaluateOutfit(items,occasion,season){
+ const top=items.find(i=>i.category==='top'),bottom=items.find(i=>i.category==='bottom');
+ const colorPairs=[];for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++)colorPairs.push(colorPairScore(items[i].color,items[j].color));
+ const color=Math.round((colorPairs.length?colorPairs.reduce((a,b)=>a+b,0)/colorPairs.length:5)*3); // 30
+ const fit=top&&bottom?fitPairScore(top,bottom):15; // 25
+ const occ=occasionScore(items,occasion); // 20
+ const sea=seasonScore(items,season); // 15
+ const formal=formalityScore(items,occasion); // 10
+ const total=Math.max(0,Math.min(100,color+fit+occ+sea+formal));
+ const reasons=[`رنگ ${color}/30`,`فیت ${fit}/25`,`موقعیت ${occ}/20`,`فصل ${sea}/15`,`رسمیت ${formal}/10`];
+ return {total,reasons,breakdown:{color,fit,occasion:occ,season:sea,formality:formal}};
+}
+function bestExtra(base,candidates,occasion,season){
+ if(!candidates.length)return null;
+ return candidates.map(x=>({item:x,result:evaluateOutfit([...base,x],occasion,season)})).sort((a,b)=>b.result.total-a.result.total)[0].item;
 }
 function generateOutfit(){
- const items=loadItems(), occasion=document.getElementById('outfitOccasion').value, season=document.getElementById('outfitSeason').value;
- const tops=items.filter(x=>x.category==='top' && (season==='all'||x.season==='all'||x.season===season));
- const bottoms=items.filter(x=>x.category==='bottom' && (season==='all'||x.season==='all'||x.season===season));
- const shoes=items.filter(x=>x.category==='shoe' && (season==='all'||x.season==='all'||x.season===season));
- if(!tops.length || !bottoms.length){ document.getElementById('outfitResult').innerHTML=`<div class="empty">برای ساخت ست، حداقل یک بالاتنه و یک پایین‌تنه ثبت کن.</div>`; return; }
- let best=null;
- for(const t of tops) for(const b of bottoms){
-   const p=pairScore(t,b,occasion,season); let total=p.score, shoe=null;
-   if(shoes.length){ shoe=shoes.map(s=>({s,sc:pairScore(b,s,occasion,season).score})).sort((x,y)=>y.sc-x.sc)[0]; total=Math.round((total*.75)+(shoe.sc*.25)); }
-   if(!best || total>best.total) best={t,b,shoe:shoe?.s,total,reasons:p.reasons};
+ const items=loadItems(),occasion=document.getElementById('outfitOccasion').value,season=document.getElementById('outfitSeason').value;
+ const eligible=items.filter(x=>seasonMatches(x,season));
+ const tops=eligible.filter(x=>x.category==='top'),bottoms=eligible.filter(x=>x.category==='bottom'),shoes=eligible.filter(x=>x.category==='shoe'),outers=eligible.filter(x=>x.category==='outer'),accessories=eligible.filter(x=>x.category==='accessory');
+ if(!tops.length||!bottoms.length){document.getElementById('outfitResult').innerHTML=`<div class="empty">برای ساخت ست، حداقل یک بالاتنه و یک پایین‌تنه ثبت کن.</div>`;return;}
+ const combos=[];
+ for(const t of tops)for(const b of bottoms){
+   let arr=[t,b];
+   const shoe=bestExtra(arr,shoes,occasion,season);if(shoe)arr.push(shoe);
+   const outer=bestExtra(arr,outers,occasion,season);if(outer)arr.push(outer);
+   const accessory=bestExtra(arr,accessories,occasion,season);if(accessory)arr.push(accessory);
+   const result=evaluateOutfit(arr,occasion,season);
+   combos.push({items:arr,...result});
  }
- window.currentSuggestedOutfit={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),itemIds:[best.t.id,best.b.id,best.shoe?.id].filter(Boolean),total:best.total,occasion,season,createdAt:Date.now()};
- const arr=[best.t,best.b,best.shoe].filter(Boolean);
- document.getElementById('outfitResult').innerHTML=`<div class="outfit-card card"><div class="score-row"><div><div class="score">${best.total}/100</div><div class="score-detail">STYLE SCORE</div></div><div class="score-detail">${best.reasons.join(' · ')||'ترکیب پیشنهادی'}</div></div><div class="outfit-items">${arr.map(itemCard).join('')}</div><button class="primary save-outfit-btn" onclick="saveCurrentOutfit()">ذخیره در ست‌های من</button></div>`;
+ combos.sort((a,b)=>b.total-a.total);
+ const unique=[];const seen=new Set();
+ for(const c of combos){const key=c.items.map(i=>i.id).sort().join('|');if(!seen.has(key)){seen.add(key);unique.push(c)}if(unique.length===3)break;}
+ window.currentSuggestedOutfits=unique.map(c=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),itemIds:c.items.map(i=>i.id),total:c.total,breakdown:c.breakdown,occasion,season,createdAt:Date.now()}));
+ window.currentSuggestedOutfit=window.currentSuggestedOutfits[0];
+ const labels=['بهترین انتخاب','انتخاب دوم','انتخاب سوم'];
+ document.getElementById('outfitResult').innerHTML=unique.map((c,idx)=>`<div class="outfit-card card"><div class="rank-label">${idx+1}. ${labels[idx]}</div><div class="score-row"><div><div class="score">${c.total}/100</div><div class="score-detail">STYLE SCORE</div></div><div class="score-detail score-explain">${c.reasons.join(' · ')}</div></div><div class="outfit-items">${c.items.map(itemCard).join('')}</div><button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button></div>`).join('');
 }
+function saveSuggestedOutfit(idx){window.currentSuggestedOutfit=window.currentSuggestedOutfits?.[idx];saveCurrentOutfit()}
+
 function saveCurrentOutfit(){
  if(!window.currentSuggestedOutfit) return;
  const saved=loadSaved();
