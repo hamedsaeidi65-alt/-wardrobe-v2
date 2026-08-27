@@ -320,28 +320,37 @@ function generateOutfit(){
  const tops=eligible.filter(x=>x.category==='top'),bottoms=eligible.filter(x=>x.category==='bottom'),shoes=eligible.filter(x=>x.category==='shoe'),outers=eligible.filter(x=>x.category==='outer'),accessories=eligible.filter(x=>x.category==='accessory');
  if(!tops.length||!bottoms.length){document.getElementById('outfitResult').innerHTML=`<div class="empty">برای ساخت ست، حداقل یک بالاتنه و یک پایین‌تنه ثبت کن.</div>`;return;}
  const combos=[];
- for(const t of tops)for(const b of bottoms){
-   let arr=[t,b];
-   const shoe=bestExtra(arr,shoes,occasion,season);if(shoe)arr.push(shoe);
+ const shoeOptions=shoes.length?shoes:[null];
+ const ctx={occasion,season,weather:season==='warm'?'hot':season==='cold'?'cold':'all'};
+ for(const t of tops)for(const b of bottoms)for(const sh of shoeOptions){
+   let arr=[t,b]; if(sh)arr.push(sh);
    const outer=bestExtra(arr,outers,occasion,season);if(outer)arr.push(outer);
    const accessory=bestExtra(arr,accessories,occasion,season);if(accessory)arr.push(accessory);
-   const result=evaluateOutfit(arr,occasion,season);
-   combos.push({items:arr,...result});
+   const base=evaluateOutfit(arr,occasion,season);
+   const fashion=fashionEvaluateOutfit(arr,ctx);
+   if(fashion.hardFail) continue;
+   const fashionQuality=Math.max(0,Math.min(100,50+fashion.bonus*2));
+   const total=Math.max(0,Math.min(100,Math.round(base.total*0.85+fashionQuality*0.15)));
+   const reasons=[...base.reasons,...fashion.reasons.map(x=>'مد: '+x)];
+   combos.push({items:arr,total,reasons,breakdown:{...base.breakdown,fashion:fashionQuality}});
  }
  combos.sort((a,b)=>b.total-a.total);
- // فقط ست‌های با امتیاز 80 یا بیشتر اجازه نمایش دارند.
- const qualified=combos.filter(c=>c.total>=80);
+ const qualified=combos.filter(c=>c.total>=MIN_OUTFIT_SCORE);
  const unique=[];const seen=new Set();
- for(const c of qualified){const key=c.items.map(i=>i.id).sort().join('|');if(!seen.has(key)){seen.add(key);unique.push(c)}if(unique.length===3)break;}
+ for(const c of qualified){
+   const key=c.items.map(i=>i.id).sort().join('|');
+   if(!seen.has(key)){seen.add(key);unique.push(c)}
+   if(unique.length===3)break;
+ }
  if(!unique.length){
    window.currentSuggestedOutfits=[];window.currentSuggestedOutfit=null;
    document.getElementById('outfitResult').innerHTML=`<div class="empty">برای این شرایط، ست مناسبی در کمدت پیدا نشد.</div>`;
    return;
  }
- window.currentSuggestedOutfits=unique.map(c=>({id:editingItemId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),itemIds:c.items.map(i=>i.id),total:c.total,breakdown:c.breakdown,occasion,season,createdAt:editingItemId?(loadItems().find(x=>x.id===editingItemId)?.createdAt||Date.now()):Date.now()}));
+ window.currentSuggestedOutfits=unique.map(c=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),itemIds:c.items.map(i=>i.id),total:c.total,breakdown:c.breakdown,occasion,season,createdAt:Date.now()}));
  window.currentSuggestedOutfit=window.currentSuggestedOutfits[0];
  const labels=['بهترین انتخاب','انتخاب دوم','انتخاب سوم'];
- document.getElementById('outfitResult').innerHTML=unique.map((c,idx)=>`<div class="outfit-card card"><div class="rank-label">${idx+1}. ${labels[idx]}</div><div class="score-row"><div><div class="score">${c.total}/100</div><div class="score-detail">STYLE SCORE</div></div><div class="score-detail score-explain">${c.reasons.join(' · ')}</div></div><div class="outfit-items">${c.items.map(itemCard).join('')}</div><button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button></div>`).join('');
+ document.getElementById('outfitResult').innerHTML=unique.map((c,idx)=>`<div class="outfit-card card"><div class="rank-label">${idx+1}. ${labels[idx]}</div><div class="score-row"><div><div class="score">${c.total}/100</div><div class="score-detail">STYLE SCORE</div></div><div class="score-detail score-explain">${c.reasons.slice(0,7).join(' · ')}</div></div><div class="outfit-items">${c.items.map(itemCard).join('')}</div><button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button></div>`).join('');
 }
 function saveSuggestedOutfit(idx){window.currentSuggestedOutfit=window.currentSuggestedOutfits?.[idx];saveCurrentOutfit()}
 

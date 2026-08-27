@@ -54,3 +54,10 @@ V2.8 Fashion Engine
 - Dress Code، فصل و آب‌وهوا
 - قوانین Context-aware (مثلاً Oversized+Baggy در Streetwear)
 - آماده نمایش دلیل انتخاب هر ست
+
+
+V2.8.1 Hotfix:
+- اصلاح نمایش شماره نسخه
+- ساخت ترکیب جدا برای هر کفش، نه فقط بهترین کفش
+- نمایش تا 3 ست بالای 80
+- اعمال Fashion Engine در رتبه‌بندی
