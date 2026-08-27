@@ -66,3 +66,12 @@ V2.8.1 Hotfix:
 V3.0 Explainable Stylist Engine
 Weights: color 25, silhouette 20, occasion 15, season/weather 15, shoe-trouser 10, formality 5, color echo 5, visual balance 5.
 Hard weather constraints and 80+ recommendation policy are retained.
+
+
+V3.1 — Wired Explainable Stylist Engine
+- موتور V3.1 مستقیماً به مسیر ساخت ست وصل شد.
+- فرمول واقعی: رنگ 25، سیلوئت 20، موقعیت 15، هوا 15، کفش/شلوار 10، رسمیت 5، Color Echo 5، تعادل بصری 5.
+- شرط سخت ناسازگاری با هوا.
+- فقط ست‌های 80+ نمایش داده می‌شوند.
+- رتبه‌بندی چند ست با Tie-breaker مد.
+- بخش «چرا این رتبه؟» به خروجی واقعی متصل شد.

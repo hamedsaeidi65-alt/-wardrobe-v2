@@ -109,3 +109,30 @@ legend{padding:0 6px;color:#d9d6cf;font-size:14px}
 .v3-why{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card2);font-size:12px;line-height:1.9}
 .v3-breakdown{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .v3-breakdown span{border:1px solid var(--line);border-radius:999px;padding:4px 8px;font-size:11px}
+
+.v31-breakdown{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  margin:10px 0 12px;
+}
+.v31-breakdown span{
+  border:1px solid var(--line);
+  background:var(--card2);
+  border-radius:12px;
+  padding:8px 10px;
+  color:var(--muted);
+  font-size:11px;
+  line-height:1.5;
+}
+.v31-why{
+  margin:0 0 14px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:11px 12px;
+  background:var(--card2);
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.9;
+}
+.v31-why strong{color:var(--text)}
