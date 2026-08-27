@@ -59,7 +59,7 @@ const SUBTYPE_FIELDS={
  'اورشرت':[{id:'material',label:'جنس',options:['نخی','فلانل','دنیم','پشمی']},{id:'weight',label:'وزن لایه',options:['سبک','متوسط','سنگین']}],
  'بارانی':[{id:'length',label:'قد',options:['کوتاه','متوسط','بلند']},{id:'weight',label:'وزن لایه',options:['سبک','متوسط']}],
  'پالتو':[{id:'length',label:'قد',options:['کوتاه','متوسط','بلند']},{id:'weight',label:'وزن لایه',options:['متوسط','سنگین']}],
- 'کتانی':[{id:'shoeStyle',label:'استایل کفش',options:['مینیمال','رانینگ','رترو','بسکتبال','اسکیت','کلاسیک','چانکی','لوکس / فشن','اوت‌دور']},{id:'shoeHeight',label:'ارتفاع ساق',options:['Low / کوتاه','Mid / متوسط','High / بلند']},{id:'shoeMaterial',label:'جنس',options:['چرم','جیر','مش','پارچه / کانواس','ترکیبی','مصنوعی']}],
+ 'کتانی':[{id:'shoeStyle',label:'استایل کفش (می‌توانی چند مورد انتخاب کنی)',type:'multi',options:['مینیمال','رانینگ','رترو','بسکتبال','اسکیت','کلاسیک','چانکی','لوکس / فشن','اوت‌دور']},{id:'shoeHeight',label:'ارتفاع ساق',options:['Low / کوتاه','Mid / متوسط','High / بلند']},{id:'shoeMaterial',label:'جنس',options:['چرم','جیر','مش','پارچه / کانواس','ترکیبی','مصنوعی']}],
  'لوفر':[{id:'shoeStyle',label:'مدل',options:['پنی','تسل','هورسبیت']},{id:'shoeMaterial',label:'جنس',options:['چرم','جیر','مصنوعی']},{id:'shoeFormality',label:'استایل',options:['کژوال','اسمارت کژوال','رسمی']}],
  'کفش رسمی':[{id:'shoeStyle',label:'مدل',options:['آکسفورد','دربی','مونک‌استرپ']},{id:'shoeMaterial',label:'جنس',options:['چرم صاف','چرم جیر','چرم ورنی','مصنوعی']},{id:'shoeFormality',label:'استایل',options:['اسمارت کژوال','رسمی']}],
  'صندل':[{id:'shoeStyle',label:'استایل',options:['مینیمال','کژوال','اسپرت','اوت‌دور']},{id:'shoeMaterial',label:'جنس',options:['چرم','پارچه','لاستیکی / EVA','مصنوعی']}],
@@ -87,9 +87,17 @@ function renderSubtypeFields(){
  const subtype=document.getElementById('subtype')?.value||'';
  const box=document.getElementById('subtypeFields'); if(!box)return;
  const fields=SUBTYPE_FIELDS[subtype]||[];
- box.innerHTML=fields.map(f=>`<label>${f.label}<select class="smart-detail" data-detail-id="${f.id}">${optionsHtml(f.options)}</select></label>`).join('');
+ box.innerHTML=fields.map(f=>{
+  if(f.type==='multi') return `<fieldset class="detail-multi"><legend>${f.label}</legend><div class="check-grid">${f.options.map(x=>`<label class="check-card"><input type="checkbox" class="smart-detail-multi" data-detail-id="${f.id}" value="${x}"><span>${x}</span></label>`).join('')}</div></fieldset>`;
+  return `<label>${f.label}<select class="smart-detail" data-detail-id="${f.id}">${optionsHtml(f.options)}</select></label>`;
+ }).join('');
 }
-function smartDetails(){const o={};document.querySelectorAll('.smart-detail').forEach(el=>o[el.dataset.detailId]=el.value);return o}
+function smartDetails(){
+ const o={};
+ document.querySelectorAll('.smart-detail').forEach(el=>o[el.dataset.detailId]=el.value);
+ document.querySelectorAll('.smart-detail-multi:checked').forEach(el=>{(o[el.dataset.detailId]??=[]).push(el.value)});
+ return o;
+}
 function checkedValues(name){return [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(x=>x.value)}
 function loadItems(){return JSON.parse(localStorage.getItem(KEY)||'[]')}
 function loadSaved(){return JSON.parse(localStorage.getItem(SAVED_KEY)||'[]')}

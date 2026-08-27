@@ -87,3 +87,11 @@ legend{padding:0 6px;color:#d9d6cf;font-size:14px}
   cursor:pointer;
   user-select:none;
 }
+
+/* V2.6: multi-select sneaker styles */
+.detail-multi{border:1px solid var(--line,#333);border-radius:18px;padding:14px;margin:14px 0 0}
+.detail-multi legend{padding:0 8px}
+.detail-multi .check-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.detail-multi .check-card{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#202024;border-radius:14px;padding:12px;margin:0}
+.detail-multi .check-card input{width:24px;height:24px;flex:0 0 auto}
+@media(max-width:380px){.detail-multi .check-grid{grid-template-columns:1fr}}
