@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#111111"/>
   <title>Wardrobe V2</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="style.css?v=241"/>
 </head>
 <body>
   <header class="topbar">
@@ -72,11 +72,11 @@
         <div class="photo-field">
           <span class="field-title">عکس لباس</span>
           <div class="photo-actions">
-            <button type="button" class="photo-choice" onclick="openCamera()">📷 عکس گرفتن</button>
-            <button type="button" class="photo-choice" onclick="openGallery()">🖼 انتخاب از گالری</button>
+            <label class="photo-choice" for="cameraPhoto">📷 عکس گرفتن</label>
+            <label class="photo-choice" for="galleryPhoto">🖼 انتخاب از گالری</label>
           </div>
-          <input type="file" id="cameraPhoto" accept="image/*" capture="environment" hidden>
-          <input type="file" id="galleryPhoto" accept="image/*" hidden>
+          <input class="file-input-hidden" type="file" id="cameraPhoto" accept="image/*" capture="environment">
+          <input class="file-input-hidden" type="file" id="galleryPhoto" accept="image/*">
           <div id="previewWrap" class="preview-wrap hidden">
             <img id="preview" alt="">
             <div class="preview-actions">
@@ -201,6 +201,14 @@
     <button onclick="goPage('profile')" data-page="profile">پروفایل</button>
   </nav>
 
-  <script src="app.js"></script>
+
+  <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      regs.forEach(function(reg){ reg.unregister(); });
+    });
+  }
+  </script>
+  <script src="app.js?v=241"></script>
 </body>
 </html>

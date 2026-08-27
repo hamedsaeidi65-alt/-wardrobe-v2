@@ -70,3 +70,20 @@ legend{padding:0 6px;color:#d9d6cf;font-size:14px}
 .preview-wrap img{height:220px}
 .preview-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:10px 10px 0}
 .secondary-btn{color:var(--gold)}.danger-btn{color:var(--danger)}
+
+.file-input-hidden{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  opacity:0!important;
+  overflow:hidden!important;
+  pointer-events:none!important;
+}
+.photo-choice{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  cursor:pointer;
+  user-select:none;
+}

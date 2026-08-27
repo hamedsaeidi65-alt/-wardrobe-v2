@@ -250,8 +250,6 @@ document.getElementById('itemForm').addEventListener('submit', async e=>{
  e.target.reset(); removePhoto();
  goPage('wardrobe');
 });
-function openCamera(){document.getElementById('cameraPhoto').click()}
-function openGallery(){document.getElementById('galleryPhoto').click()}
 function handlePhotoSelection(e){
  const f=e.target.files[0]; if(!f)return;
  window.selectedPhotoFile=f;
@@ -270,7 +268,7 @@ function removePhoto(){
 }
 function changePhoto(){
  removePhoto();
- openGallery();
+ document.getElementById('galleryPhoto').click();
 }
 function compressImage(file,maxW=900,quality=.78){
  return new Promise(resolve=>{
@@ -290,6 +288,6 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPro
 document.getElementById('installBtn').addEventListener('click',async()=>{
  if(!deferredPrompt)return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt=null;
 });
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+
 renderDynamicFields();
 renderAll();
