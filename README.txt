@@ -9,3 +9,4 @@ Wardrobe V2.1
 - افزودن لباس فقط از داخل کمد
 
 برای GitHub Pages فایل‌های index.html، app.js، style.css، sw.js و README.txt را جایگزین نسخه فعلی کنید.
+Deploy retry
