@@ -1,5 +1,6 @@
 
 const KEY='wardrobe_v2_items';
+const SAVED_KEY='wardrobe_v2_saved_outfits';
 let deferredPrompt=null;
 const compat={
  black:['white','gray','beige','blue','navy','green','red','brown','black'],
@@ -23,6 +24,8 @@ const fitPairs={
 };
 
 function loadItems(){return JSON.parse(localStorage.getItem(KEY)||'[]')}
+function loadSaved(){return JSON.parse(localStorage.getItem(SAVED_KEY)||'[]')}
+function saveSaved(items){localStorage.setItem(SAVED_KEY,JSON.stringify(items)); renderSavedOutfits()}
 function saveItems(items){localStorage.setItem(KEY,JSON.stringify(items)); renderAll()}
 function catFa(c){return ({top:'بالاتنه',bottom:'پایین‌تنه',outer:'رویه',shoe:'کفش',accessory:'اکسسوری'})[c]||c}
 function fitFa(f){return f}
@@ -33,6 +36,7 @@ function goPage(id){
  document.getElementById(id).classList.add('active');
  document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===id));
  if(id==='wardrobe') renderWardrobe();
+ if(id==='saved') renderSavedOutfits();
  window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -66,7 +70,7 @@ function renderWardrobe(){
  if(s) items=items.filter(x=>x.season===s || x.season==='all');
  document.getElementById('wardrobeGrid').innerHTML=items.length?items.slice().reverse().map(itemCard).join(''):`<div class="empty">لباسی با این فیلتر پیدا نشد.</div>`;
 }
-function renderAll(){renderHome();renderWardrobe()}
+function renderAll(){renderHome();renderWardrobe();renderSavedOutfits()}
 
 function pairScore(a,b,occasion,season){
  let score=50, reasons=[];
@@ -84,28 +88,28 @@ function generateOutfit(){
  const tops=items.filter(x=>x.category==='top' && (season==='all'||x.season==='all'||x.season===season));
  const bottoms=items.filter(x=>x.category==='bottom' && (season==='all'||x.season==='all'||x.season===season));
  const shoes=items.filter(x=>x.category==='shoe' && (season==='all'||x.season==='all'||x.season===season));
- if(!tops.length || !bottoms.length){
-   document.getElementById('outfitResult').innerHTML=`<div class="empty">برای ساخت ست، حداقل یک بالاتنه و یک پایین‌تنه ثبت کن.</div>`; return;
- }
+ if(!tops.length || !bottoms.length){ document.getElementById('outfitResult').innerHTML=`<div class="empty">برای ساخت ست، حداقل یک بالاتنه و یک پایین‌تنه ثبت کن.</div>`; return; }
  let best=null;
  for(const t of tops) for(const b of bottoms){
-   const p=pairScore(t,b,occasion,season);
-   let total=p.score, shoe=null;
-   if(shoes.length){
-     shoe=shoes.map(s=>({s, sc:pairScore(b,s,occasion,season).score})).sort((x,y)=>y.sc-x.sc)[0];
-     total=Math.round((total*0.75)+(shoe.sc*0.25));
-   }
+   const p=pairScore(t,b,occasion,season); let total=p.score, shoe=null;
+   if(shoes.length){ shoe=shoes.map(s=>({s,sc:pairScore(b,s,occasion,season).score})).sort((x,y)=>y.sc-x.sc)[0]; total=Math.round((total*.75)+(shoe.sc*.25)); }
    if(!best || total>best.total) best={t,b,shoe:shoe?.s,total,reasons:p.reasons};
  }
+ window.currentSuggestedOutfit={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),itemIds:[best.t.id,best.b.id,best.shoe?.id].filter(Boolean),total:best.total,occasion,season,createdAt:Date.now()};
  const arr=[best.t,best.b,best.shoe].filter(Boolean);
- document.getElementById('outfitResult').innerHTML=`
-   <div class="outfit-card card">
-     <div class="score-row">
-       <div><div class="score">${best.total}/100</div><div class="score-detail">STYLE SCORE</div></div>
-       <div class="score-detail">${best.reasons.join(' · ')||'ترکیب پیشنهادی'}</div>
-     </div>
-     <div class="outfit-items">${arr.map(itemCard).join('')}</div>
-   </div>`;
+ document.getElementById('outfitResult').innerHTML=`<div class="outfit-card card"><div class="score-row"><div><div class="score">${best.total}/100</div><div class="score-detail">STYLE SCORE</div></div><div class="score-detail">${best.reasons.join(' · ')||'ترکیب پیشنهادی'}</div></div><div class="outfit-items">${arr.map(itemCard).join('')}</div><button class="primary save-outfit-btn" onclick="saveCurrentOutfit()">ذخیره در ست‌های من</button></div>`;
+}
+function saveCurrentOutfit(){
+ if(!window.currentSuggestedOutfit) return;
+ const saved=loadSaved();
+ if(saved.some(x=>JSON.stringify(x.itemIds)===JSON.stringify(window.currentSuggestedOutfit.itemIds))){alert('این ست قبلاً ذخیره شده.');return;}
+ saved.unshift(window.currentSuggestedOutfit); saveSaved(saved); alert('ست ذخیره شد.');
+}
+function removeSavedOutfit(id){if(confirm('این ست از ذخیره‌شده‌ها حذف شود؟')) saveSaved(loadSaved().filter(x=>x.id!==id))}
+function renderSavedOutfits(){
+ const saved=loadSaved(), items=loadItems(), box=document.getElementById('savedOutfits'); if(!box)return;
+ if(!saved.length){box.innerHTML=`<div class="empty">هنوز ستی ذخیره نکرده‌ای. از بخش پیشنهاد ست، یک ترکیب را ذخیره کن.</div>`;return;}
+ box.innerHTML=saved.map((o,idx)=>{const arr=o.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);return `<div class="outfit-card card saved-card"><div class="score-row"><div><div class="score">${o.total}/100</div><div class="score-detail">STYLE SCORE</div></div><div class="score-detail">ست ${saved.length-idx}</div></div><div class="outfit-items">${arr.map(itemCard).join('')}</div><button class="delete saved-delete" onclick="removeSavedOutfit('${o.id}')">حذف این ست</button></div>`}).join('');
 }
 
 document.getElementById('itemForm').addEventListener('submit', async e=>{

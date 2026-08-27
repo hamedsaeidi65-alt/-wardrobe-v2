@@ -42,3 +42,13 @@ input,select{width:100%;background:var(--card2);color:var(--text);border:1px sol
 .bottom-nav button{border:0;background:none;color:var(--muted);padding:10px 2px}.bottom-nav button.active{color:var(--gold);font-weight:700}
 .empty{padding:30px 12px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:18px}
 @media(min-width:650px){.grid{grid-template-columns:repeat(3,1fr)}}
+
+.mini-note{font-size:12px;color:var(--muted)}
+.save-outfit-btn{width:100%;margin-top:14px}
+.saved-card{margin-bottom:14px}
+.saved-delete{margin-top:14px}
+.profile-card{padding:22px}
+.profile-card p{color:var(--muted);line-height:1.9}
+.profile-mark{width:58px;height:58px;border-radius:18px;background:var(--gold);color:#151515;display:grid;place-items:center;font-weight:900;font-size:26px;margin-bottom:16px}
+.profile-row{display:flex;justify-content:space-between;gap:15px;padding:14px 0;border-top:1px solid var(--line);font-size:14px}
+.profile-row span{color:var(--muted)}

@@ -67,7 +67,7 @@
     </section>
 
     <section id="add" class="page">
-      <div class="section-head"><h2>افزودن لباس</h2></div>
+      <div class="section-head"><h2>افزودن لباس</h2><button class="text-btn" onclick="goPage('wardrobe')">بازگشت به کمد</button></div>
       <form id="itemForm" class="form card">
         <label>عکس لباس
           <input type="file" id="photo" accept="image/*" capture="environment">
@@ -161,13 +161,29 @@
 
       <div id="outfitResult"></div>
     </section>
+    <section id="saved" class="page">
+      <div class="section-head"><h2>ست‌های من</h2><span class="mini-note">ذخیره‌شده‌ها</span></div>
+      <div id="savedOutfits"></div>
+    </section>
+
+    <section id="profile" class="page">
+      <div class="section-head"><h2>پروفایل</h2></div>
+      <div class="card profile-card">
+        <div class="profile-mark">W</div>
+        <h3>استایل شخصی</h3>
+        <p>تنظیمات شخصی‌سازی استایل، سایزها، برندهای موردعلاقه و ترجیحات پوشش در نسخه‌های بعدی اینجا قرار می‌گیرند.</p>
+        <div class="profile-row"><span>نسخه اپ</span><strong>2.1</strong></div>
+        <div class="profile-row"><span>ذخیره اطلاعات</span><strong>روی همین گوشی</strong></div>
+      </div>
+    </section>
+
   </main>
 
   <nav class="bottom-nav">
     <button onclick="goPage('home')" data-page="home" class="active">خانه</button>
     <button onclick="goPage('wardrobe')" data-page="wardrobe">کمد</button>
-    <button onclick="goPage('add')" data-page="add">افزودن</button>
-    <button onclick="goPage('outfit')" data-page="outfit">ست</button>
+    <button onclick="goPage('saved')" data-page="saved">ست‌های من</button>
+    <button onclick="goPage('profile')" data-page="profile">پروفایل</button>
   </nav>
 
   <script src="app.js"></script>
