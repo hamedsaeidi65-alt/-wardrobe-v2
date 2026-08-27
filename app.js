@@ -324,7 +324,9 @@ function generateOutfit(){
       items:arr,
       score:result.score,
       breakdown:result.breakdown,
+      audit:result.audit,
       reasons:result.reasons,
+      audit:result.audit,
       order:order++
     });
   }
@@ -354,6 +356,7 @@ function generateOutfit(){
     itemIds:c.items.map(i=>i.id),
     total:c.score,
     breakdown:c.breakdown,
+    audit:c.audit,
     reasons:c.reasons,
     occasion,
     season:weather,
@@ -382,7 +385,7 @@ function generateOutfit(){
         <span>تعادل بصری ${b.visual}/5</span>
       </div>
 
-      <div class="v31-why"><strong>چرا این رتبه؟</strong><br>${v31Why(c,unique[idx+1])}</div>
+      <div class="v31-why"><strong>چرا این رتبه؟</strong><br>${v31Why(c,unique[idx+1])}</div>${v32WhyCard(c)}
       <div class="outfit-items">${c.items.map(itemCard).join('')}</div>
       <button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button>
     </div>`;
@@ -410,6 +413,8 @@ document.getElementById('itemForm').addEventListener('submit', async e=>{
  const f=window.selectedPhotoFile || null;
  if(f) photoData=await compressImage(f,900,.78);
  const item={
+    warmthLevel: document.getElementById('warmthLevel')?.value || 'medium',
+    layerRole: document.getElementById('layerRole')?.value || 'standalone',
    id:editingItemId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),
    name:document.getElementById('name').value.trim(),
    category:document.getElementById('category').value,
@@ -629,7 +634,7 @@ function v31Visual(items){
 
 function v31Evaluate(items,occasion,weather){
   const gate=v31HardGate(items,occasion,weather);
-  if(gate.fail) return {hardFail:true,score:0,breakdown:{},reasons:gate.reasons};
+  if(gate.fail) return {hardFail:true,score:0,breakdown:{},reasons:gate.reasons,audit:{}};
 
   const top=items.find(i=>i.category==='top');
   const bottom=items.find(i=>i.category==='bottom');
@@ -638,21 +643,34 @@ function v31Evaluate(items,occasion,weather){
   const color=v31Color(items);
   const silhouette=v31Silhouette(top,bottom,occasion);
   const occ=v31Occasion(items,occasion);
-  const season=v31Weather(items,weather);
-  const shoeTrouser=v31ShoeTrouser(shoe,bottom);
-  const formality=v31Formality(items,occasion);
+  const weatherAudit=v32ThermalAudit(items,weather);
+  if(weatherAudit.hardFail) return {hardFail:true,score:0,breakdown:{},reasons:weatherAudit.lines,audit:{weather:weatherAudit}};
+  const shoeAudit=v32ShoeTrouserAudit(shoe,bottom);
+  const formalityAudit=v32FormalityAudit(items,occasion);
   const echo=v31Echo(items);
-  const visual=v31Visual(items);
+  const visualAudit=v32VisualAudit(items);
 
-  const score=color.score+silhouette.score+occ.score+season.score+shoeTrouser.score+formality.score+echo.score+visual.score;
-  const reasons=[...color.reasons,...silhouette.reasons,...shoeTrouser.reasons,...echo.reasons,...visual.reasons];
+  const score=color.score+silhouette.score+occ.score+weatherAudit.score+shoeAudit.score+formalityAudit.score+echo.score+visualAudit.score;
+  const reasons=[...color.reasons,...silhouette.reasons,...shoeAudit.lines,...echo.reasons,...visualAudit.lines];
 
   return {
     hardFail:false,
     score:Math.max(0,Math.min(100,score)),
     breakdown:{
-      color:color.score, silhouette:silhouette.score, occasion:occ.score, season:season.score,
-      shoeTrouser:shoeTrouser.score, formality:formality.score, echo:echo.score, visual:visual.score
+      color:color.score,
+      silhouette:silhouette.score,
+      occasion:occ.score,
+      season:weatherAudit.score,
+      shoeTrouser:shoeAudit.score,
+      formality:formalityAudit.score,
+      echo:echo.score,
+      visual:visualAudit.score
+    },
+    audit:{
+      weather:weatherAudit,
+      formality:formalityAudit,
+      shoeTrouser:shoeAudit,
+      visual:visualAudit
     },
     reasons:[...new Set(reasons)].slice(0,6)
   };
@@ -692,3 +710,179 @@ function v31BestExtra(base,candidates,occasion,weather){
   return evaluated[0]?.item||null;
 }
 
+
+
+// ===== WARDROBE V3.2 — Thermal Layering + Auditable Scoring =====
+function warmthFa(v){
+  return ({light:'سبک',medium:'متوسط',warm:'گرم'})[v]||'متوسط';
+}
+function layerRoleFa(v){
+  return ({base:'لایه پایه',mid:'لایه میانی',outer:'لایه بیرونی',standalone:'مستقل'})[v]||'مستقل';
+}
+function v32Warmth(item){
+  const v=item?.details?.warmthLevel || item?.warmthLevel || 'medium';
+  return v;
+}
+function v32LayerRole(item){
+  return item?.details?.layerRole || item?.layerRole || 'standalone';
+}
+function v32HasOuter(items){
+  return items.some(i=>i.category==='outer' || v32LayerRole(i)==='outer');
+}
+function v32ThermalAudit(items, weather){
+  let score=15;
+  const lines=[];
+  if(weather==='all'){
+    return {score:15, lines:['✓ هوا محدودکننده نیست: +15/15'], hardFail:false};
+  }
+
+  const hasOuter=v32HasOuter(items);
+
+  if(weather==='hot'){
+    for(const i of items){
+      const w=v32Warmth(i);
+      const role=v32LayerRole(i);
+      if(w==='warm'){
+        return {score:0, lines:[`✗ ${i.name||'این لباس'} برای هوای گرم بیش از حد گرم است`], hardFail:true};
+      }
+      if(w==='medium' && role!=='base'){
+        score-=2;
+        lines.push(`△ ${i.name||'لباس'} گرمادهی متوسط دارد: −2`);
+      }
+    }
+    if(score===15) lines.push('✓ همه اجزا برای هوای گرم مناسب‌اند: +15/15');
+  }
+
+  if(weather==='mild'){
+    for(const i of items){
+      const w=v32Warmth(i);
+      if(w==='warm'){
+        score-=2;
+        lines.push(`△ ${i.name||'لباس'} برای هوای معتدل کمی گرم است: −2`);
+      }
+      if(w==='light'){
+        score-=1;
+        lines.push(`△ ${i.name||'لباس'} کمی سبک است: −1`);
+      }
+    }
+    if(score===15) lines.push('✓ گرمادهی اجزا برای هوای معتدل مناسب است: +15/15');
+  }
+
+  if(weather==='cold'){
+    for(const i of items){
+      const w=v32Warmth(i);
+      const role=v32LayerRole(i);
+
+      if(role==='mid' && !hasOuter){
+        score-=4;
+        lines.push(`△ ${i.name||'لایه میانی'} در هوای سرد بدون رویه است: −4`);
+      }
+      if(role==='standalone' && w==='medium' && !hasOuter){
+        score-=3;
+        lines.push(`△ ${i.name||'لباس'} گرمادهی متوسط دارد و رویه ندارد: −3`);
+      }
+      if(w==='light' && !hasOuter){
+        score-=4;
+        lines.push(`△ ${i.name||'لباس'} برای سرما سبک است: −4`);
+      }
+    }
+    if(hasOuter){
+      lines.push('✓ رویه مناسب برای هوای سرد در ست وجود دارد');
+    } else if(score===15){
+      lines.push('✓ اجزای ست به‌تنهایی برای هوای سرد کافی‌اند');
+    }
+  }
+
+  return {score:Math.max(0,Math.min(15,score)), lines, hardFail:false};
+}
+
+function v32FormalityAudit(items, occasion){
+  const target=targetFormality(occasion);
+  const vals=items.map(i=>({name:i.name||'آیتم', val:Number(i.formality||2)})).filter(x=>Number.isFinite(x.val));
+  if(!vals.length) return {score:3,lines:['△ اطلاعات رسمیت کافی نیست: 3/5']};
+
+  const avg=vals.reduce((a,b)=>a+b.val,0)/vals.length;
+  const delta=Math.abs(avg-target);
+  let score=5;
+  const lines=[];
+
+  if(delta<0.5){ lines.push('✓ میانگین رسمیت ست با موقعیت هماهنگ است: +5/5'); }
+  else if(delta<1.0){ score=4; lines.push('△ سطح رسمیت کمی با موقعیت فاصله دارد: −1'); }
+  else if(delta<2.0){ score=3; lines.push('△ سطح رسمیت ست noticeably متفاوت است: −2'); }
+  else { score=2; lines.push('△ اختلاف رسمیت زیاد است: −3'); }
+
+  const spread=Math.max(...vals.map(x=>x.val))-Math.min(...vals.map(x=>x.val));
+  if(spread>=3 && score>1){
+    score-=1;
+    const casual=vals.slice().sort((a,b)=>a.val-b.val)[0];
+    lines.push(`△ ${casual.name} نسبت به بقیه اجزا کژوال‌تر است: −1`);
+  }
+  return {score:Math.max(1,score),lines};
+}
+
+function v32ShoeTrouserAudit(shoe,bottom){
+  if(!shoe||!bottom) return {score:6,lines:['△ کفش یا شلوار برای ارزیابی کامل موجود نیست: 6/10']};
+
+  let score=6;
+  const lines=[];
+  const styles=v31Styles(shoe).map(x=>String(x).toLowerCase());
+  const bf=String(bottom.fit||'Regular').toLowerCase();
+  const chunky=styles.some(x=>x.includes('چانکی')||x.includes('chunk')||x.includes('بسکت')||x.includes('basket'));
+  const clean=styles.some(x=>x.includes('مینیمال')||x.includes('minimal')||x.includes('کلاسیک')||x.includes('classic')||x.includes('رترو')||x.includes('retro'));
+
+  if(v31Loose(bf)&&chunky){ score+=2; lines.push('✓ حجم کفش با شلوار آزاد هماهنگ است: +2'); }
+  else if(v31Loose(bf)&&clean){ score+=2; lines.push('✓ فرم تمیز کفش با Relaxed Fit تعادل خوبی دارد: +2'); }
+  else if(v31Slim(bf)&&chunky){ score-=2; lines.push('△ کفش برای شلوار باریک کمی حجیم است: −2'); }
+  else { score+=1; lines.push('✓ فرم کلی کفش و شلوار سازگار است: +1'); }
+
+  if(v31Family(bottom.color)==='blue' && v31Family(shoe.color)==='blue'){
+    score+=1; lines.push('✓ کفش و جین پل تونال آبی ساخته‌اند: +1');
+  } else if(v31Family(bottom.color)==='blue' && shoe.color==='white'){
+    score+=1; lines.push('✓ کفش سفید با جین کنتراست کلاسیک ساخته: +1');
+  }
+
+  if(v31Loose(bf) && (shoe.details?.ankleHeight==='low' || shoe.ankleHeight==='low')){
+    score+=1; lines.push('✓ ساق کوتاه اجازه می‌دهد خط شلوار آزاد طبیعی بماند: +1');
+  }
+
+  return {score:Math.max(0,Math.min(10,score)),lines};
+}
+
+function v32VisualAudit(items){
+  const top=items.find(i=>i.category==='top');
+  const bottom=items.find(i=>i.category==='bottom');
+  const shoe=items.find(i=>i.category==='shoe');
+  const lines=[];
+  let score=5;
+
+  const tones=items.map(i=>v31Tone(i.color));
+  if(new Set(tones).size>=2){
+    lines.push('✓ توزیع روشن/تیره در ست متعادل است: +5/5');
+  }else{
+    score=4;
+    lines.push('△ ست کاملاً تونال است و کنتراست کمتری دارد: −1');
+  }
+
+  if(top?.color==='black' && shoe?.color==='black' && ['denim_blue','light_blue','blue'].includes(bottom?.color)){
+    score=Math.min(score,3);
+    lines.push('△ دو جرم تیره بالا و پایین، جین روشن را محصور کرده‌اند: −2');
+  }
+  return {score,lines};
+}
+
+function v32WhyCard(result){
+  const a=result.audit||{};
+  const rows=[
+    ['هوا',a.weather],
+    ['رسمیت',a.formality],
+    ['کفش/شلوار',a.shoeTrouser],
+    ['تعادل بصری',a.visual]
+  ].filter(x=>x[1]?.lines?.length);
+
+  return rows.map(([title,obj])=>`
+    <details class="audit-detail">
+      <summary>${title} — ${obj.score}/${title==='هوا'?15:title==='رسمیت'?5:title==='کفش/شلوار'?10:5}</summary>
+      <div class="audit-lines">${obj.lines.map(x=>`<div>${x}</div>`).join('')}</div>
+    </details>
+  `).join('');
+}
