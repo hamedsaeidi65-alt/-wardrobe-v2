@@ -221,97 +221,69 @@ function bestExtra(base,candidates,occasion,season){
  return candidates.map(x=>({item:x,result:evaluateOutfit([...base,x],occasion,season)})).sort((a,b)=>b.result.total-a.result.total)[0].item;
 }
 
-// ===== V2.8 Fashion Rule Engine =====
+// ===== V2.9 Fashion Ranking Engine =====
 const MIN_OUTFIT_SCORE = 80;
-
-const DARK_COLORS = new Set(['black','charcoal','navy','darkbrown','burgundy','emerald','olive']);
-const LIGHT_COLORS = new Set(['white','ivory','cream','beige','camel','lightgray','lightblue','pink','lilac']);
-const NEUTRAL_COLORS = new Set(['black','white','ivory','cream','beige','camel','gray','lightgray','charcoal','navy','brown']);
-
-function itemStyles(i){
-  const s=i.styles||i.shoeStyles||i.style||i.extra||[];
-  return Array.isArray(s)?s:[s].filter(Boolean);
+const DARK_COLORS = new Set(['black','charcoal','navy','brown_dark','burgundy','jade','olive']);
+const LIGHT_COLORS = new Set(['white','ivory','cream','beige','camel','gray_light','light_blue','pink','lilac']);
+const NEUTRAL_COLORS = new Set(['black','white','ivory','cream','beige','camel','gray','gray_light','charcoal']);
+function itemStyles(i){const d=i.details||{};const v=d.shoeStyle||d.styleDetail||i.styles||i.style||[];return Array.isArray(v)?v:[v].filter(Boolean)}
+function colorTone(c){if(DARK_COLORS.has(c))return 'dark';if(LIGHT_COLORS.has(c))return 'light';return 'mid'}
+function family(c){return colorFamily[c]||'other'}
+function isLoose(f){f=String(f||'regular').toLowerCase();return ['relaxed','oversized','baggy','wide'].some(x=>f.includes(x))}
+function isSlim(f){f=String(f||'regular').toLowerCase();return ['skinny','slim'].some(x=>f.includes(x))}
+function colorHarmonyScore(items){
+ let score=0,pairs=0;
+ for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++){score+=colorPairScore(items[i].color,items[j].color);pairs++}
+ return pairs?Math.round(score/pairs*10):50;
 }
-function itemOccasions(i){ return i.occasions || (i.occasion?[i.occasion]:[]); }
-function itemSeasons(i){ return i.seasons || (i.season?[i.season]:[]); }
-function colorTone(c){ if(DARK_COLORS.has(c))return 'dark'; if(LIGHT_COLORS.has(c))return 'light'; return 'mid'; }
-function sameColor(a,b){ return a && b && a===b; }
-function colorFamilySafe(c){
-  try { return typeof colorFamily==='function' ? colorFamily(c) : c; } catch(e){ return c; }
+function colorEchoScore(items){
+ let n=0;for(let i=0;i<items.length;i++)for(let j=i+1;j<items.length;j++)if(items[i].color===items[j].color||family(items[i].color)===family(items[j].color))n++;
+ return Math.min(100,n*35);
 }
-function fashionPairScore(a,b,context={}){
-  let score=0, reasons=[];
-  if(!a||!b) return {score,reasons};
-
-  // Color harmony + color echo
-  const fa=colorFamilySafe(a.color), fb=colorFamilySafe(b.color);
-  if(sameColor(a.color,b.color)){ score+=4; reasons.push('تکرار رنگ و انسجام تونال'); }
-  else if(NEUTRAL_COLORS.has(a.color)||NEUTRAL_COLORS.has(b.color)){ score+=5; reasons.push('هماهنگی خوب با رنگ خنثی'); }
-  else if(fa===fb){ score+=3; reasons.push('هماهنگی در یک خانواده رنگی'); }
-
-  if(colorTone(a.color)!==colorTone(b.color)){ score+=3; reasons.push('کنتراست روشن/تیره متعادل'); }
-
-  // Silhouette / fit balance. Context matters: streetwear can support volume-on-volume.
-  const af=(a.fit||'Regular').toLowerCase(), bf=(b.fit||'Regular').toLowerCase();
-  const loose=x=>['relaxed','oversized','baggy','wide'].some(v=>x.includes(v));
-  const slim=x=>['skinny','slim'].some(v=>x.includes(v));
-  const street=(context.occasion==='street'||context.style==='streetwear');
-  if(loose(af)&&loose(bf)){ score += street?4:0; if(street) reasons.push('حجم هماهنگ برای استریت‌ویر'); }
-  else if((loose(af)&&!loose(bf))||(!loose(af)&&loose(bf))){ score+=5; reasons.push('تعادل خوب حجم و سیلوئت'); }
-  else if(slim(af)&&slim(bf)){ score+=2; }
-  else { score+=4; reasons.push('تناسب متعادل فرم لباس‌ها'); }
-
-  return {score,reasons};
+function silhouetteScore(items,ctx){
+ const t=items.find(x=>x.category==='top'),b=items.find(x=>x.category==='bottom');if(!t||!b)return 50;
+ const street=ctx.occasion==='sport';
+ if(isLoose(t.fit)&&isLoose(b.fit))return street?90:65;
+ if(isLoose(t.fit)!==isLoose(b.fit))return 95;
+ if(isSlim(t.fit)&&isSlim(b.fit))return 72;
+ return 85;
 }
-function shoeTrouserScore(shoe,bottom,context={}){
-  if(!shoe||!bottom) return {score:0,reasons:[]};
-  let score=0,reasons=[];
-  const styles=itemStyles(shoe).map(x=>String(x).toLowerCase());
-  const bf=String(bottom.fit||'Regular').toLowerCase();
-  const wide=['baggy','wide','relaxed'].some(x=>bf.includes(x));
-  const slim=['skinny','slim'].some(x=>bf.includes(x));
-  const chunky=styles.some(x=>x.includes('chunk')||x.includes('چانکی')||x.includes('basket')||x.includes('بسکت'));
-  const minimal=styles.some(x=>x.includes('minimal')||x.includes('مینیمال')||x.includes('classic')||x.includes('کلاسیک'));
-  if(wide&&chunky){score+=5;reasons.push('حجم کفش با شلوار هماهنگ است');}
-  if(slim&&chunky){score-=3;reasons.push('کفش نسبت به فرم شلوار حجیم است');}
-  if(slim&&minimal){score+=4;reasons.push('کفش تمیز با فرم شلوار هماهنگ است');}
-  return {score,reasons};
+function shoeTrouserVisualScore(items){
+ const b=items.find(x=>x.category==='bottom'),sh=items.find(x=>x.category==='shoe');if(!b||!sh)return 50;
+ let score=72;const styles=itemStyles(sh).map(x=>String(x).toLowerCase());
+ const chunky=styles.some(x=>x.includes('چانکی')||x.includes('chunk')||x.includes('بسکت')||x.includes('basket'));
+ const minimal=styles.some(x=>x.includes('مینیمال')||x.includes('minimal')||x.includes('کلاسیک')||x.includes('classic'));
+ if(isLoose(b.fit)&&chunky)score+=18;if(isLoose(b.fit)&&minimal)score+=10;if(isSlim(b.fit)&&chunky)score-=15;if(isSlim(b.fit)&&minimal)score+=15;
+ // tonal bridge between denim/blue trousers and navy shoes
+ if(family(b.color)==='blue'&&family(sh.color)==='blue')score+=10;
+ return Math.max(0,Math.min(100,score));
 }
-function contextCompatibility(item,ctx={}){
-  let score=0,reasons=[], hardFail=false;
-  const seasons=itemSeasons(item), occ=itemOccasions(item);
-  if(ctx.season && seasons.length && !seasons.includes('all') && !seasons.includes(ctx.season)){
-    score-=18; reasons.push('فصل نامناسب');
-  }
-  if(ctx.occasion && occ.length && !occ.includes(ctx.occasion)){
-    score-=12; reasons.push('Dress code ضعیف‌تر');
-  }
-  // Weather is a hard constraint for clearly incompatible seasonal pieces.
-  if(ctx.weather==='hot' && seasons.length && !seasons.includes('summer') && !seasons.includes('all')){
-    hardFail=true; reasons.push('برای هوای گرم مناسب نیست');
-  }
-  if(ctx.weather==='cold' && seasons.length===1 && seasons.includes('summer')){
-    hardFail=true; reasons.push('برای هوای سرد مناسب نیست');
-  }
-  return {score,reasons,hardFail};
+function fashionEvaluateOutfit(items,ctx={}){
+ let hardFail=false;
+ for(const i of items){
+   if(ctx.season&&ctx.season!=='all'&&!seasonMatches(i,ctx.season))hardFail=true;
+   if(ctx.occasion&&itemOccasions(i).length&&!itemOccasions(i).includes(ctx.occasion)&&itemOccasions(i).length===1){} // soft mismatch is handled by base score
+ }
+ const harmony=colorHarmonyScore(items),echo=colorEchoScore(items),silhouette=silhouetteScore(items,ctx),shoeTrouser=shoeTrouserVisualScore(items);
+ const fashionQuality=Math.round(harmony*.38+shoeTrouser*.27+echo*.15+silhouette*.20);
+ return {hardFail,fashionQuality,tie:{harmony,shoeTrouser,echo,silhouette}};
 }
-function fashionEvaluateOutfit(parts,ctx={}){
-  const valid=parts.filter(Boolean);
-  let bonus=0,reasons=[],hardFail=false;
-  for(let i=0;i<valid.length;i++){
-    const cc=contextCompatibility(valid[i],ctx);
-    bonus+=cc.score; reasons.push(...cc.reasons); hardFail ||= cc.hardFail;
-    for(let j=i+1;j<valid.length;j++){
-      const p=fashionPairScore(valid[i],valid[j],ctx);
-      bonus+=p.score; reasons.push(...p.reasons);
-    }
-  }
-  const bottom=valid.find(x=>x.category==='bottom');
-  const shoe=valid.find(x=>x.category==='shoe');
-  if(bottom&&shoe){
-    const p=shoeTrouserScore(shoe,bottom,ctx); bonus+=p.score; reasons.push(...p.reasons);
-  }
-  return {bonus,reasons:[...new Set(reasons)].slice(0,4),hardFail};
+function compareFashionRank(a,b){
+ if(b.total!==a.total)return b.total-a.total;
+ // Professional tie-break priority: visual harmony > shoe/trouser > color echo > silhouette > formality
+ for(const k of ['harmony','shoeTrouser','echo','silhouette']){const d=(b.tie[k]||0)-(a.tie[k]||0);if(d)return d}
+ const fd=(b.breakdown.formality||0)-(a.breakdown.formality||0);if(fd)return fd;
+ return a.order-b.order;
+}
+function rankingExplanation(c,next){
+ const t=c.tie;
+ let parts=[`هارمونی بصری ${t.harmony}/100`,`کفش/شلوار ${t.shoeTrouser}/100`,`Color Echo ${t.echo}/100`,`سیلوئت ${t.silhouette}/100`];
+ if(next&&c.total===next.total){
+   const keys=[['harmony','هارمونی بصری'],['shoeTrouser','تناسب کفش و شلوار'],['echo','Color Echo'],['silhouette','سیلوئت']];
+   const win=keys.find(([k])=>(c.tie[k]||0)!==(next.tie[k]||0));
+   if(win)parts.push(`رتبه بالاتر به‌دلیل ${win[1]}`);
+ }
+ return parts.join(' · ');
 }
 
 function generateOutfit(){
@@ -319,38 +291,20 @@ function generateOutfit(){
  const eligible=items.filter(x=>seasonMatches(x,season));
  const tops=eligible.filter(x=>x.category==='top'),bottoms=eligible.filter(x=>x.category==='bottom'),shoes=eligible.filter(x=>x.category==='shoe'),outers=eligible.filter(x=>x.category==='outer'),accessories=eligible.filter(x=>x.category==='accessory');
  if(!tops.length||!bottoms.length){document.getElementById('outfitResult').innerHTML=`<div class="empty">برای ساخت ست، حداقل یک بالاتنه و یک پایین‌تنه ثبت کن.</div>`;return;}
- const combos=[];
- const shoeOptions=shoes.length?shoes:[null];
- const ctx={occasion,season,weather:season==='warm'?'hot':season==='cold'?'cold':'all'};
+ const combos=[],shoeOptions=shoes.length?shoes:[null],ctx={occasion,season};let order=0;
  for(const t of tops)for(const b of bottoms)for(const sh of shoeOptions){
-   let arr=[t,b]; if(sh)arr.push(sh);
-   const outer=bestExtra(arr,outers,occasion,season);if(outer)arr.push(outer);
-   const accessory=bestExtra(arr,accessories,occasion,season);if(accessory)arr.push(accessory);
-   const base=evaluateOutfit(arr,occasion,season);
-   const fashion=fashionEvaluateOutfit(arr,ctx);
-   if(fashion.hardFail) continue;
-   const fashionQuality=Math.max(0,Math.min(100,50+fashion.bonus*2));
-   const total=Math.max(0,Math.min(100,Math.round(base.total*0.85+fashionQuality*0.15)));
-   const reasons=[...base.reasons,...fashion.reasons.map(x=>'مد: '+x)];
-   combos.push({items:arr,total,reasons,breakdown:{...base.breakdown,fashion:fashionQuality}});
+   let arr=[t,b];if(sh)arr.push(sh);const outer=bestExtra(arr,outers,occasion,season);if(outer)arr.push(outer);const accessory=bestExtra(arr,accessories,occasion,season);if(accessory)arr.push(accessory);
+   const base=evaluateOutfit(arr,occasion,season),fashion=fashionEvaluateOutfit(arr,ctx);if(fashion.hardFail)continue;
+   const total=Math.max(0,Math.min(100,Math.round(base.total*.82+fashion.fashionQuality*.18)));
+   combos.push({items:arr,total,breakdown:{...base.breakdown,fashion:fashion.fashionQuality},tie:fashion.tie,order:order++});
  }
- combos.sort((a,b)=>b.total-a.total);
- const qualified=combos.filter(c=>c.total>=MIN_OUTFIT_SCORE);
- const unique=[];const seen=new Set();
- for(const c of qualified){
-   const key=c.items.map(i=>i.id).sort().join('|');
-   if(!seen.has(key)){seen.add(key);unique.push(c)}
-   if(unique.length===3)break;
- }
- if(!unique.length){
-   window.currentSuggestedOutfits=[];window.currentSuggestedOutfit=null;
-   document.getElementById('outfitResult').innerHTML=`<div class="empty">برای این شرایط، ست مناسبی در کمدت پیدا نشد.</div>`;
-   return;
- }
- window.currentSuggestedOutfits=unique.map(c=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),itemIds:c.items.map(i=>i.id),total:c.total,breakdown:c.breakdown,occasion,season,createdAt:Date.now()}));
- window.currentSuggestedOutfit=window.currentSuggestedOutfits[0];
+ combos.sort(compareFashionRank);
+ const qualified=combos.filter(c=>c.total>=MIN_OUTFIT_SCORE),unique=[],seen=new Set();
+ for(const c of qualified){const key=c.items.map(i=>i.id).sort().join('|');if(!seen.has(key)){seen.add(key);unique.push(c)}if(unique.length===3)break}
+ if(!unique.length){window.currentSuggestedOutfits=[];window.currentSuggestedOutfit=null;document.getElementById('outfitResult').innerHTML=`<div class="empty">برای این شرایط، ست مناسبی در کمدت پیدا نشد.</div>`;return}
+ window.currentSuggestedOutfits=unique.map(c=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),itemIds:c.items.map(i=>i.id),total:c.total,breakdown:c.breakdown,occasion,season,createdAt:Date.now()}));window.currentSuggestedOutfit=window.currentSuggestedOutfits[0];
  const labels=['بهترین انتخاب','انتخاب دوم','انتخاب سوم'];
- document.getElementById('outfitResult').innerHTML=unique.map((c,idx)=>`<div class="outfit-card card"><div class="rank-label">${idx+1}. ${labels[idx]}</div><div class="score-row"><div><div class="score">${c.total}/100</div><div class="score-detail">STYLE SCORE</div></div><div class="score-detail score-explain">${c.reasons.slice(0,7).join(' · ')}</div></div><div class="outfit-items">${c.items.map(itemCard).join('')}</div><button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button></div>`).join('');
+ document.getElementById('outfitResult').innerHTML=unique.map((c,idx)=>`<div class="outfit-card card"><div class="rank-label">${idx+1}. ${labels[idx]}</div><div class="score-row"><div><div class="score">${c.total}/100</div><div class="score-detail">STYLE SCORE</div></div><div class="score-detail score-explain">رنگ ${c.breakdown.color}/30 · فیت ${c.breakdown.fit}/25 · موقعیت ${c.breakdown.occasion}/20 · فصل ${c.breakdown.season}/15 · رسمیت ${c.breakdown.formality}/10</div></div><div class="rank-reason">${rankingExplanation(c,unique[idx+1])}</div><div class="outfit-items">${c.items.map(itemCard).join('')}</div><button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button></div>`).join('');
 }
 function saveSuggestedOutfit(idx){window.currentSuggestedOutfit=window.currentSuggestedOutfits?.[idx];saveCurrentOutfit()}
 
@@ -437,8 +391,3 @@ renderDynamicFields();
 renderAll();
 
 
-function fashionReasonText(outfit,ctx={}){
- const parts=[outfit.top,outfit.bottom,outfit.shoe,outfit.outer,outfit.accessory].filter(Boolean);
- const r=fashionEvaluateOutfit(parts,ctx);
- return r.reasons.length ? r.reasons.join(' • ') : 'ترکیب متعادل از نظر رنگ، فرم و موقعیت';
-}
