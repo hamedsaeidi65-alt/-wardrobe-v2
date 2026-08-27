@@ -95,3 +95,9 @@ legend{padding:0 6px;color:#d9d6cf;font-size:14px}
 .detail-multi .check-card{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#202024;border-radius:14px;padding:12px;margin:0}
 .detail-multi .check-card input{width:24px;height:24px;flex:0 0 auto}
 @media(max-width:380px){.detail-multi .check-grid{grid-template-columns:1fr}}
+
+/* V2.7: wardrobe detail and edit */
+.clickable-card{cursor:pointer}
+.detail-card{padding:16px}.detail-photo{width:100%;max-height:360px;object-fit:contain;background:#f2f1ed;border-radius:16px;margin-bottom:16px}
+.detail-card h3{font-size:24px;margin:4px 0 14px}.detail-row{display:flex;justify-content:space-between;gap:16px;padding:13px 0;border-top:1px solid var(--line);line-height:1.7}.detail-row span{color:var(--muted)}.detail-row strong{text-align:left}
+.detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.detail-actions button{width:100%}

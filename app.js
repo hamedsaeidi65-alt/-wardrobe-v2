@@ -2,6 +2,8 @@
 const KEY='wardrobe_v2_items';
 const SAVED_KEY='wardrobe_v2_saved_outfits';
 let deferredPrompt=null;
+let editingItemId=null;
+let editingPhotoData='';
 const colorFamily={black:'neutral',white:'neutral',ivory:'neutral',gray_light:'neutral',gray:'neutral',charcoal:'neutral',navy:'blue',petrol_blue:'blue',blue:'blue',light_blue:'blue',denim_blue:'blue',cream:'neutral',beige:'earth',camel:'earth',khaki:'earth',brown_light:'earth',brown:'earth',brown_dark:'earth',green:'green',jade:'green',olive:'green',red:'red',burgundy:'red',brick:'red',orange:'warm',mustard:'warm',yellow:'warm',pink:'pink',peach:'pink',purple:'purple',lilac:'purple',other:'other'};
 const compat={
  neutral:['neutral','blue','earth','green','red','warm','pink','purple'],
@@ -118,15 +120,36 @@ function goPage(id){
 
 function itemCard(i){
  const img=i.photo?`<img src="${i.photo}" alt="">`:`<div class="placeholder">👕</div>`;
- return `<div class="item-card">
+ return `<div class="item-card clickable-card" onclick="openItemDetail('${i.id}')">
    <div class="item-img">${img}</div>
    <div class="item-info">
      <strong>${escapeHtml(i.name)}</strong>
      <div class="meta">${catFa(i.category)}${i.subtype?' · '+i.subtype:''} · ${colorFa(i.color)}<br>${fitFa(i.fit||'Regular')}${i.extra?' · '+i.extra:''}</div>
-     <button class="delete" onclick="removeItem('${i.id}')">حذف</button>
+     <button class="delete" onclick="event.stopPropagation();removeItem('${i.id}')">حذف</button>
    </div>
  </div>`
 }
+const seasonFa={spring:'بهار',summer:'تابستان',autumn:'پاییز',fall:'پاییز',winter:'زمستان',all:'چهارفصل',warm:'گرم',cold:'سرد'};
+const occasionFa={casual:'روزمره',smart:'اسمارت کژوال',sport:'اسپرت',formal:'رسمی'};
+function openItemDetail(id){
+ const i=loadItems().find(x=>x.id===id); if(!i)return;
+ const details=Object.entries(i.details||{}).map(([k,v])=>`<div class="detail-row"><span>${escapeHtml(detailLabel(k))}</span><strong>${escapeHtml(Array.isArray(v)?v.join('، '):v)}</strong></div>`).join('');
+ document.getElementById('itemDetail').innerHTML=`<div class="card detail-card">${i.photo?`<img class="detail-photo" src="${i.photo}" alt="">`:''}<h3>${escapeHtml(i.name)}</h3><div class="detail-row"><span>دسته‌بندی</span><strong>${catFa(i.category)}</strong></div><div class="detail-row"><span>نوع دقیق</span><strong>${escapeHtml(i.subtype||'—')}</strong></div>${i.category!=='shoe'&&i.category!=='accessory'?`<div class="detail-row"><span>فرم / برش</span><strong>${escapeHtml(i.fit||'Regular')}</strong></div>`:''}<div class="detail-row"><span>رنگ اصلی</span><strong>${colorFa(i.color)}</strong></div><div class="detail-row"><span>رنگ دوم</span><strong>${i.secondaryColor?colorFa(i.secondaryColor):'ندارد'}</strong></div>${details}<div class="detail-row"><span>فصل‌ها</span><strong>${itemSeasons(i).map(x=>seasonFa[x]||x).join('، ')}</strong></div><div class="detail-row"><span>موقعیت استفاده</span><strong>${itemOccasions(i).map(x=>occasionFa[x]||x).join('، ')}</strong></div><div class="detail-row"><span>میزان رسمی بودن</span><strong>${i.formality||2} از ۵</strong></div><div class="detail-actions"><button class="primary" onclick="editItem('${i.id}')">ویرایش مشخصات</button><button class="danger-btn" onclick="removeItem('${i.id}');goPage('wardrobe')">حذف لباس</button></div></div>`;
+ goPage('detail');
+}
+function detailLabel(k){return ({shoeStyle:'استایل کفش',shoeHeight:'ارتفاع ساق',shoeMaterial:'جنس',shoeFormality:'استایل استفاده',pattern:'طرح',neck:'یقه',sleeve:'آستین',rise:'فاق',wash:'شست / ظاهر',pleat:'جلوی شلوار',material:'جنس',length:'قد',styleDetail:'استایل'})[k]||k}
+function editItem(id){
+ const i=loadItems().find(x=>x.id===id); if(!i)return; editingItemId=id; editingPhotoData=i.photo||'';
+ goPage('add'); document.getElementById('name').value=i.name||''; document.getElementById('category').value=i.category; renderDynamicFields();
+ document.getElementById('subtype').value=i.subtype||CATEGORY_FIELDS[i.category].subtype[0]; renderSubtypeFields();
+ if(document.getElementById('fit'))document.getElementById('fit').value=i.fit||'Regular';
+ document.getElementById('color').value=i.color||'black'; document.getElementById('secondaryColor').value=i.secondaryColor||''; document.getElementById('formality').value=i.formality||2;
+ document.querySelectorAll('input[name="seasons"]').forEach(x=>x.checked=itemSeasons(i).includes(x.value)); document.querySelectorAll('input[name="occasions"]').forEach(x=>x.checked=itemOccasions(i).includes(x.value));
+ Object.entries(i.details||{}).forEach(([k,v])=>{const one=document.querySelector(`.smart-detail[data-detail-id="${k}"]`);if(one)one.value=v;document.querySelectorAll(`.smart-detail-multi[data-detail-id="${k}"]`).forEach(x=>x.checked=Array.isArray(v)&&v.includes(x.value))});
+ if(i.photo){document.getElementById('preview').src=i.photo;document.getElementById('previewWrap').classList.remove('hidden')}
+ document.querySelector('#itemForm .primary[type="submit"]').textContent='ذخیره تغییرات';
+}
+
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function removeItem(id){if(confirm('این لباس حذف شود؟')) saveItems(loadItems().filter(x=>x.id!==id))}
 
@@ -221,7 +244,7 @@ function generateOutfit(){
    document.getElementById('outfitResult').innerHTML=`<div class="empty">برای این شرایط، ست مناسبی در کمدت پیدا نشد.</div>`;
    return;
  }
- window.currentSuggestedOutfits=unique.map(c=>({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),itemIds:c.items.map(i=>i.id),total:c.total,breakdown:c.breakdown,occasion,season,createdAt:Date.now()}));
+ window.currentSuggestedOutfits=unique.map(c=>({id:editingItemId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),itemIds:c.items.map(i=>i.id),total:c.total,breakdown:c.breakdown,occasion,season,createdAt:editingItemId?(loadItems().find(x=>x.id===editingItemId)?.createdAt||Date.now()):Date.now()}));
  window.currentSuggestedOutfit=window.currentSuggestedOutfits[0];
  const labels=['بهترین انتخاب','انتخاب دوم','انتخاب سوم'];
  document.getElementById('outfitResult').innerHTML=unique.map((c,idx)=>`<div class="outfit-card card"><div class="rank-label">${idx+1}. ${labels[idx]}</div><div class="score-row"><div><div class="score">${c.total}/100</div><div class="score-detail">STYLE SCORE</div></div><div class="score-detail score-explain">${c.reasons.join(' · ')}</div></div><div class="outfit-items">${c.items.map(itemCard).join('')}</div><button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button></div>`).join('');
@@ -243,11 +266,11 @@ function renderSavedOutfits(){
 
 document.getElementById('itemForm').addEventListener('submit', async e=>{
  e.preventDefault();
- let photoData='';
+ let photoData=editingPhotoData||'';
  const f=window.selectedPhotoFile || null;
  if(f) photoData=await compressImage(f,900,.78);
  const item={
-   id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+   id:editingItemId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),
    name:document.getElementById('name').value.trim(),
    category:document.getElementById('category').value,
    subtype:document.getElementById('subtype')?.value||'',
@@ -262,10 +285,10 @@ document.getElementById('itemForm').addEventListener('submit', async e=>{
    season:'all',
    occasion:checkedValues('occasions')[0]||'casual',
    photo:photoData,
-   createdAt:Date.now()
+   createdAt:editingItemId?(loadItems().find(x=>x.id===editingItemId)?.createdAt||Date.now()):Date.now()
  };
- const items=loadItems(); items.push(item); saveItems(items);
- e.target.reset(); removePhoto();
+ const items=loadItems(); if(editingItemId){const n=items.findIndex(x=>x.id===editingItemId);if(n>=0)items[n]=item}else items.push(item); saveItems(items);
+ editingItemId=null; editingPhotoData=''; e.target.reset(); removePhoto(); document.querySelector('#itemForm .primary[type="submit"]').textContent='ذخیره در کمد';
  goPage('wardrobe');
 });
 function handlePhotoSelection(e){
