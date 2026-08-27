@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+  <meta name="theme-color" content="#111111"/>
+  <title>Wardrobe V2</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="eyebrow">WARDROBE V2</div>
+      <h1>استایل شخصی من</h1>
+    </div>
+    <button class="icon-btn" id="installBtn" hidden>＋ نصب</button>
+  </header>
+
+  <main>
+    <section id="home" class="page active">
+      <div class="hero card">
+        <div>
+          <span class="badge">TODAY</span>
+          <h2>امروز چی بپوشم؟</h2>
+          <p>از لباس‌های داخل کمدت، بهترین ترکیب را بر اساس هماهنگی رنگ، فیت، فصل و موقعیت انتخاب کن.</p>
+          <button class="primary" onclick="goPage('outfit')">پیشنهاد ست</button>
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat card"><strong id="countItems">0</strong><span>لباس</span></div>
+        <div class="stat card"><strong id="countTops">0</strong><span>بالاتنه</span></div>
+        <div class="stat card"><strong id="countBottoms">0</strong><span>پایین‌تنه</span></div>
+      </div>
+
+      <div class="section-head">
+        <h3>آخرین لباس‌ها</h3>
+        <button class="text-btn" onclick="goPage('wardrobe')">مشاهده همه</button>
+      </div>
+      <div id="recentItems" class="grid"></div>
+    </section>
+
+    <section id="wardrobe" class="page">
+      <div class="section-head">
+        <h2>کمد من</h2>
+        <button class="primary small" onclick="goPage('add')">＋ افزودن لباس</button>
+      </div>
+
+      <div class="filters card">
+        <select id="filterCategory" onchange="renderWardrobe()">
+          <option value="">همه دسته‌ها</option>
+          <option value="top">بالاتنه</option>
+          <option value="bottom">پایین‌تنه</option>
+          <option value="outer">رویه</option>
+          <option value="shoe">کفش</option>
+          <option value="accessory">اکسسوری</option>
+        </select>
+        <select id="filterSeason" onchange="renderWardrobe()">
+          <option value="">همه فصل‌ها</option>
+          <option value="all">چهارفصل</option>
+          <option value="warm">گرم</option>
+          <option value="cold">سرد</option>
+        </select>
+      </div>
+      <div id="wardrobeGrid" class="grid"></div>
+    </section>
+
+    <section id="add" class="page">
+      <div class="section-head"><h2>افزودن لباس</h2></div>
+      <form id="itemForm" class="form card">
+        <label>عکس لباس
+          <input type="file" id="photo" accept="image/*" capture="environment">
+        </label>
+        <div id="previewWrap" class="preview-wrap hidden">
+          <img id="preview" alt="">
+        </div>
+
+        <label>نام لباس
+          <input id="name" required placeholder="مثلاً شلوار جین آبی">
+        </label>
+
+        <label>دسته‌بندی
+          <select id="category" required>
+            <option value="top">بالاتنه</option>
+            <option value="bottom">پایین‌تنه</option>
+            <option value="outer">رویه</option>
+            <option value="shoe">کفش</option>
+            <option value="accessory">اکسسوری</option>
+          </select>
+        </label>
+
+        <label>فرم / Fit
+          <select id="fit">
+            <option value="regular">Regular</option>
+            <option value="slim">Slim</option>
+            <option value="straight">Straight</option>
+            <option value="relaxed">Relaxed</option>
+            <option value="baggy">Baggy</option>
+            <option value="oversized">Oversized</option>
+          </select>
+        </label>
+
+        <label>رنگ غالب
+          <select id="color">
+            <option value="black">مشکی</option>
+            <option value="white">سفید</option>
+            <option value="gray">طوسی</option>
+            <option value="navy">سرمه‌ای</option>
+            <option value="blue">آبی</option>
+            <option value="beige">بژ</option>
+            <option value="brown">قهوه‌ای</option>
+            <option value="green">سبز</option>
+            <option value="red">قرمز</option>
+            <option value="other">سایر</option>
+          </select>
+        </label>
+
+        <label>فصل
+          <select id="season">
+            <option value="all">چهارفصل</option>
+            <option value="warm">هوای گرم</option>
+            <option value="cold">هوای سرد</option>
+          </select>
+        </label>
+
+        <label>موقعیت استفاده
+          <select id="occasion">
+            <option value="casual">روزمره</option>
+            <option value="smart">اسمارت کژوال</option>
+            <option value="sport">اسپرت</option>
+            <option value="formal">رسمی</option>
+          </select>
+        </label>
+
+        <button class="primary" type="submit">ذخیره در کمد</button>
+      </form>
+    </section>
+
+    <section id="outfit" class="page">
+      <div class="section-head"><h2>پیشنهاد ست</h2></div>
+
+      <div class="form card compact">
+        <label>موقعیت
+          <select id="outfitOccasion">
+            <option value="casual">روزمره</option>
+            <option value="smart">اسمارت کژوال</option>
+            <option value="sport">اسپرت</option>
+            <option value="formal">رسمی</option>
+          </select>
+        </label>
+        <label>هوا
+          <select id="outfitSeason">
+            <option value="warm">گرم</option>
+            <option value="cold">سرد</option>
+            <option value="all">فرقی ندارد</option>
+          </select>
+        </label>
+        <button class="primary" onclick="generateOutfit()">ساخت ست</button>
+      </div>
+
+      <div id="outfitResult"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button onclick="goPage('home')" data-page="home" class="active">خانه</button>
+    <button onclick="goPage('wardrobe')" data-page="wardrobe">کمد</button>
+    <button onclick="goPage('add')" data-page="add">افزودن</button>
+    <button onclick="goPage('outfit')" data-page="outfit">ست</button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
