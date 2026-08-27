@@ -61,3 +61,8 @@ V2.8.1 Hotfix:
 - ساخت ترکیب جدا برای هر کفش، نه فقط بهترین کفش
 - نمایش تا 3 ست بالای 80
 - اعمال Fashion Engine در رتبه‌بندی
+
+
+V3.0 Explainable Stylist Engine
+Weights: color 25, silhouette 20, occasion 15, season/weather 15, shoe-trouser 10, formality 5, color echo 5, visual balance 5.
+Hard weather constraints and 80+ recommendation policy are retained.

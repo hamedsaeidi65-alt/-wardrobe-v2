@@ -391,3 +391,152 @@ renderDynamicFields();
 renderAll();
 
 
+
+
+// ===== WARDROBE V3.0 — Explainable Stylist Engine =====
+const V3_MIN_SCORE = 80;
+
+function v3Arr(v){ return Array.isArray(v)?v:(v?[v]:[]); }
+function v3Styles(i){ return v3Arr(i?.styles || i?.shoeStyles || i?.style); }
+function v3Seasons(i){ return v3Arr(i?.seasons || i?.season); }
+function v3Occ(i){ return v3Arr(i?.occasions || i?.occasion); }
+function v3Tone(c){
+ const dark=['black','charcoal','navy','darkbrown','burgundy','emerald','olive','مشکی','زغالی','سرمه‌ای','زرشکی','یشمی','زیتونی'];
+ const light=['white','ivory','cream','beige','camel','lightgray','lightblue','سفید','شیری','کرم','بژ','شتری','طوسی روشن','آبی روشن'];
+ if(dark.includes(c)) return 'dark'; if(light.includes(c)) return 'light'; return 'mid';
+}
+function v3Neutral(c){
+ return ['black','white','ivory','cream','beige','camel','gray','lightgray','charcoal','navy','brown',
+ 'مشکی','سفید','شیری','کرم','بژ','شتری','طوسی','طوسی روشن','زغالی','سرمه‌ای','قهوه‌ای'].includes(c);
+}
+function v3ColorFamily(c){
+ const map={
+  'black':'neutral','white':'neutral','ivory':'neutral','cream':'neutral','beige':'neutral','camel':'neutral','gray':'neutral','lightgray':'neutral','charcoal':'neutral',
+  'مشکی':'neutral','سفید':'neutral','شیری':'neutral','کرم':'neutral','بژ':'neutral','شتری':'neutral','طوسی':'neutral','طوسی روشن':'neutral','زغالی':'neutral',
+  'navy':'blue','blue':'blue','lightblue':'blue','petrol':'blue','سرمه‌ای':'blue','آبی':'blue','آبی روشن':'blue','آبی نفتی':'blue',
+  'green':'green','olive':'green','emerald':'green','سبز':'green','زیتونی':'green','یشمی':'green',
+  'brown':'earth','darkbrown':'earth','khaki':'earth','قهوه‌ای':'earth','خاکی':'earth',
+  'red':'red','burgundy':'red','brick':'red','قرمز':'red','زرشکی':'red','آجری':'red',
+  'pink':'pink','peach':'pink','صورتی':'pink','گلبهی':'pink',
+  'purple':'purple','lilac':'purple','بنفش':'purple','یاسی':'purple',
+  'yellow':'yellow','mustard':'yellow','زرد':'yellow','خردلی':'yellow','orange':'orange','نارنجی':'orange'
+ };
+ return map[c]||c||'unknown';
+}
+function v3Fit(i){ return String(i?.fit||'regular').toLowerCase(); }
+function v3Loose(f){ return ['relaxed','oversized','baggy','wide','آزاد','بگ'].some(x=>f.includes(x)); }
+function v3Slim(f){ return ['skinny','slim','اسلیم','اسکینی'].some(x=>f.includes(x)); }
+
+function v3ContextGate(item,ctx){
+ const seasons=v3Seasons(item), occ=v3Occ(item);
+ let hardFail=false, notes=[];
+ if(ctx.weather==='hot' && seasons.length && !seasons.some(x=>['summer','all','تابستان','چهارفصل'].includes(x))){
+   hardFail=true; notes.push('برای هوای گرم مناسب نیست');
+ }
+ if(ctx.weather==='cold' && seasons.length===1 && seasons.some(x=>['summer','تابستان'].includes(x))){
+   hardFail=true; notes.push('برای هوای سرد مناسب نیست');
+ }
+ return {hardFail,notes};
+}
+
+function v3ColorScore(parts){
+ let s=17, notes=[];
+ const colors=parts.map(x=>x?.color).filter(Boolean);
+ const fam=colors.map(v3ColorFamily);
+ const neutralCount=colors.filter(v3Neutral).length;
+ if(neutralCount) { s+=3; notes.push('رنگ خنثی، ترکیب را متعادل کرده'); }
+ if(new Set(fam).size<=2) { s+=3; notes.push('خانواده‌های رنگی کنترل‌شده‌اند'); }
+ const tones=colors.map(v3Tone);
+ if(new Set(tones).size>=2) { s+=2; notes.push('کنتراست روشن/تیره مناسب است'); }
+ return {score:Math.min(25,s),notes};
+}
+function v3SilhouetteScore(top,bottom,ctx){
+ let s=14,notes=[];
+ const a=v3Fit(top), b=v3Fit(bottom);
+ if((v3Loose(a)&&!v3Loose(b))||(!v3Loose(a)&&v3Loose(b))){s+=5;notes.push('حجم بالاتنه و پایین‌تنه متعادل است');}
+ else if(v3Loose(a)&&v3Loose(b)){
+   if(ctx.style==='streetwear'){s+=5;notes.push('حجم آزاد با استریت‌ویر هماهنگ است');}
+   else {s+=1;notes.push('هر دو بخش آزادند؛ برای این استایل کمی حجیم است');}
+ } else {s+=4;notes.push('سیلوئت کلی متعادل است');}
+ return {score:Math.min(20,s),notes};
+}
+function v3OccasionScore(parts,ctx){
+ if(!ctx.occasion) return {score:12,notes:['موقعیت مشخص نشده؛ امتیاز محافظه‌کارانه']};
+ let hits=0,known=0;
+ parts.forEach(i=>{const o=v3Occ(i); if(o.length){known++; if(o.includes(ctx.occasion))hits++;}});
+ if(!known) return {score:11,notes:['اطلاعات موقعیت لباس‌ها کامل نیست']};
+ const ratio=hits/known;
+ return {score:Math.round(7+8*ratio),notes:[ratio===1?'همه اجزا با موقعیت انتخابی سازگارند':'بعضی اجزا با موقعیت انتخابی سازگاری کمتری دارند']};
+}
+function v3SeasonScore(parts,ctx){
+ if(!ctx.season && !ctx.weather) return {score:12,notes:['شرایط فصل/هوا مشخص نشده']};
+ let good=0,known=0;
+ parts.forEach(i=>{const ss=v3Seasons(i); if(ss.length){known++; if(!ctx.season || ss.includes(ctx.season)||ss.includes('all')||ss.includes('چهارفصل'))good++;}});
+ const ratio=known?good/known:0.75;
+ return {score:Math.round(8+7*ratio),notes:[ratio>=.99?'فصل و هوا با اجزای ست هماهنگ است':'سازگاری فصل/هوا کامل نیست']};
+}
+function v3ShoeTrouserScore(shoe,bottom){
+ if(!shoe||!bottom) return {score:6,notes:['اطلاعات کفش/شلوار کامل نیست']};
+ let s=6,notes=[];
+ const styles=v3Styles(shoe).map(x=>String(x).toLowerCase()), bf=v3Fit(bottom);
+ const chunky=styles.some(x=>x.includes('chunk')||x.includes('چانکی')||x.includes('basket')||x.includes('بسکت'));
+ const minimal=styles.some(x=>x.includes('minimal')||x.includes('مینیمال')||x.includes('classic')||x.includes('کلاسیک')||x.includes('retro')||x.includes('رترو'));
+ if(v3Loose(bf)&&chunky){s+=4;notes.push('وزن بصری کفش با شلوار آزاد هماهنگ است');}
+ else if(v3Slim(bf)&&chunky){s-=2;notes.push('کفش برای این فرم شلوار کمی حجیم است');}
+ else if(minimal){s+=3;notes.push('فرم کفش با شلوار هماهنگ است');}
+ return {score:Math.max(0,Math.min(10,s)),notes};
+}
+function v3FormalityScore(parts){
+ const vals=parts.map(i=>Number(i?.formality)).filter(Number.isFinite);
+ if(vals.length<2) return {score:4,notes:['اطلاعات رسمیت محدود است']};
+ const spread=Math.max(...vals)-Math.min(...vals);
+ return {score:spread<=25?5:spread<=45?4:2,notes:[spread<=25?'سطح رسمیت اجزا هماهنگ است':'سطح رسمیت اجزا کمی فاصله دارد']};
+}
+function v3EchoScore(parts){
+ const colors=parts.map(i=>i?.color).filter(Boolean);
+ let best=0;
+ for(let i=0;i<colors.length;i++)for(let j=i+1;j<colors.length;j++){
+   if(colors[i]===colors[j]) best=Math.max(best,5);
+   else if(v3ColorFamily(colors[i])===v3ColorFamily(colors[j])) best=Math.max(best,3);
+ }
+ return {score:best||2,notes:[best>=5?'تکرار مستقیم رنگ، انسجام ایجاد کرده':best>=3?'تکرار خانواده رنگی دیده می‌شود':'Color Echo محدود است؛ کنتراست نقش بیشتری دارد']};
+}
+function v3VisualBalance(parts){
+ const tones=parts.map(i=>v3Tone(i?.color)).filter(Boolean);
+ const varied=new Set(tones).size;
+ return {score:varied>=2?5:4,notes:[varied>=2?'وزن روشن/تیره در کل ست متعادل است':'ست تونال است و کنتراست کمتری دارد']};
+}
+
+function v3Evaluate(parts,ctx={}){
+ const valid=parts.filter(Boolean);
+ let hardFail=false, hardNotes=[];
+ valid.forEach(i=>{const g=v3ContextGate(i,ctx);hardFail ||= g.hardFail;hardNotes.push(...g.notes);});
+ if(hardFail) return {score:0,hardFail:true,reasons:[...new Set(hardNotes)]};
+
+ const top=valid.find(x=>x.category==='top');
+ const bottom=valid.find(x=>x.category==='bottom');
+ const shoe=valid.find(x=>x.category==='shoe');
+
+ const c=v3ColorScore(valid);
+ const si=v3SilhouetteScore(top,bottom,ctx);
+ const oc=v3OccasionScore(valid,ctx);
+ const se=v3SeasonScore(valid,ctx);
+ const sh=v3ShoeTrouserScore(shoe,bottom);
+ const fo=v3FormalityScore(valid);
+ const ec=v3EchoScore(valid);
+ const vb=v3VisualBalance(valid);
+
+ const score=c.score+si.score+oc.score+se.score+sh.score+fo.score+ec.score+vb.score;
+ const reasons=[...c.notes,...si.notes,...sh.notes,...ec.notes,...vb.notes];
+ return {
+  score:Math.max(0,Math.min(100,score)), hardFail:false,
+  breakdown:{color:c.score,silhouette:si.score,occasion:oc.score,season:se.score,shoeTrouser:sh.score,formality:fo.score,echo:ec.score,visual:vb.score},
+  reasons:[...new Set(reasons)].slice(0,5)
+ };
+}
+function v3RankLabel(i){ return i===0?'بهترین انتخاب':i===1?'انتخاب دوم':'انتخاب سوم'; }
+function v3WhyText(result,next){
+ let txt=result.reasons.slice(0,3).join('؛ ');
+ if(next && result.score>next.score) txt += `؛ ${result.score-next.score} امتیاز بالاتر از گزینه بعدی`;
+ return txt || 'ترکیب متعادل و سازگار با شرایط انتخابی';
+}
