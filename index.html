@@ -11,7 +11,7 @@
 <body>
   <header class="topbar">
     <div>
-      <div class="eyebrow">WARDROBE V2.4</div>
+      <div class="eyebrow">WARDROBE V2.5</div>
       <h1>استایل شخصی من</h1>
     </div>
     <button class="icon-btn" id="installBtn" hidden>＋ نصب</button>
@@ -29,9 +29,9 @@
       </div>
 
       <div class="stats">
-        <div class="stat card"><strong id="countItems">0</strong><span>لباس</span></div>
         <div class="stat card"><strong id="countTops">0</strong><span>بالاتنه</span></div>
         <div class="stat card"><strong id="countBottoms">0</strong><span>پایین‌تنه</span></div>
+        <div class="stat card"><strong id="countShoes">0</strong><span>کفش</span></div>
       </div>
 
       <div class="section-head">
@@ -104,22 +104,30 @@
 
         <label>رنگ اصلی
           <select id="color">
-            <option value="black">مشکی</option><option value="white">سفید</option>
-            <option value="gray">طوسی</option><option value="navy">سرمه‌ای</option>
-            <option value="blue">آبی</option><option value="beige">بژ</option>
-            <option value="brown">قهوه‌ای</option><option value="green">سبز</option>
-            <option value="red">قرمز</option><option value="other">سایر</option>
+            <option value="black">مشکی</option><option value="white">سفید</option><option value="ivory">شیری</option>
+            <option value="gray_light">طوسی روشن</option><option value="gray">طوسی</option><option value="charcoal">زغالی</option>
+            <option value="navy">سرمه‌ای</option><option value="petrol_blue">آبی نفتی</option><option value="blue">آبی</option><option value="light_blue">آبی روشن</option><option value="denim_blue">جین آبی</option>
+            <option value="cream">کرم</option><option value="beige">بژ</option><option value="camel">شتری</option><option value="khaki">خاکی</option>
+            <option value="brown_light">قهوه‌ای روشن</option><option value="brown">قهوه‌ای</option><option value="brown_dark">قهوه‌ای تیره</option>
+            <option value="green">سبز</option><option value="jade">یشمی</option><option value="olive">زیتونی</option>
+            <option value="red">قرمز</option><option value="burgundy">زرشکی</option><option value="brick">آجری</option>
+            <option value="orange">نارنجی</option><option value="mustard">خردلی</option><option value="yellow">زرد</option>
+            <option value="pink">صورتی</option><option value="peach">گلبهی</option><option value="purple">بنفش</option><option value="lilac">یاسی</option><option value="other">سایر</option>
           </select>
         </label>
 
         <label>رنگ دوم
           <select id="secondaryColor">
             <option value="">ندارد / تک‌رنگ</option>
-            <option value="black">مشکی</option><option value="white">سفید</option>
-            <option value="gray">طوسی</option><option value="navy">سرمه‌ای</option>
-            <option value="blue">آبی</option><option value="beige">بژ</option>
-            <option value="brown">قهوه‌ای</option><option value="green">سبز</option>
-            <option value="red">قرمز</option><option value="other">سایر</option>
+            <option value="black">مشکی</option><option value="white">سفید</option><option value="ivory">شیری</option>
+            <option value="gray_light">طوسی روشن</option><option value="gray">طوسی</option><option value="charcoal">زغالی</option>
+            <option value="navy">سرمه‌ای</option><option value="petrol_blue">آبی نفتی</option><option value="blue">آبی</option><option value="light_blue">آبی روشن</option><option value="denim_blue">جین آبی</option>
+            <option value="cream">کرم</option><option value="beige">بژ</option><option value="camel">شتری</option><option value="khaki">خاکی</option>
+            <option value="brown_light">قهوه‌ای روشن</option><option value="brown">قهوه‌ای</option><option value="brown_dark">قهوه‌ای تیره</option>
+            <option value="green">سبز</option><option value="jade">یشمی</option><option value="olive">زیتونی</option>
+            <option value="red">قرمز</option><option value="burgundy">زرشکی</option><option value="brick">آجری</option>
+            <option value="orange">نارنجی</option><option value="mustard">خردلی</option><option value="yellow">زرد</option>
+            <option value="pink">صورتی</option><option value="peach">گلبهی</option><option value="purple">بنفش</option><option value="lilac">یاسی</option><option value="other">سایر</option>
           </select>
         </label>
 

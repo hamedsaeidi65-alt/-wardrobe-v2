@@ -2,17 +2,17 @@
 const KEY='wardrobe_v2_items';
 const SAVED_KEY='wardrobe_v2_saved_outfits';
 let deferredPrompt=null;
+const colorFamily={black:'neutral',white:'neutral',ivory:'neutral',gray_light:'neutral',gray:'neutral',charcoal:'neutral',navy:'blue',petrol_blue:'blue',blue:'blue',light_blue:'blue',denim_blue:'blue',cream:'neutral',beige:'earth',camel:'earth',khaki:'earth',brown_light:'earth',brown:'earth',brown_dark:'earth',green:'green',jade:'green',olive:'green',red:'red',burgundy:'red',brick:'red',orange:'warm',mustard:'warm',yellow:'warm',pink:'pink',peach:'pink',purple:'purple',lilac:'purple',other:'other'};
 const compat={
- black:['white','gray','beige','blue','navy','green','red','brown','black'],
- white:['black','gray','beige','blue','navy','green','red','brown','white'],
- gray:['black','white','navy','blue','beige','green','gray'],
- navy:['white','gray','beige','brown','blue'],
- blue:['white','black','gray','beige','navy','brown'],
- beige:['white','black','navy','blue','brown','green'],
- brown:['white','beige','navy','blue','green'],
- green:['white','black','beige','brown','gray'],
- red:['black','white','gray','navy'],
- other:['black','white','gray','beige']
+ neutral:['neutral','blue','earth','green','red','warm','pink','purple'],
+ blue:['neutral','blue','earth','green','red'],
+ earth:['neutral','blue','earth','green','warm'],
+ green:['neutral','blue','earth','green'],
+ red:['neutral','blue','red','pink'],
+ warm:['neutral','earth','warm','blue'],
+ pink:['neutral','blue','red','pink','purple'],
+ purple:['neutral','blue','pink','purple'],
+ other:['neutral']
 };
 const fitPairs={
  slim:['straight','regular','relaxed'],
@@ -96,7 +96,7 @@ function saveSaved(items){localStorage.setItem(SAVED_KEY,JSON.stringify(items));
 function saveItems(items){localStorage.setItem(KEY,JSON.stringify(items)); renderAll()}
 function catFa(c){return ({top:'بالاتنه',bottom:'پایین‌تنه',outer:'رویه',shoe:'کفش',accessory:'اکسسوری'})[c]||c}
 function fitFa(f){return f}
-function colorFa(c){return ({black:'مشکی',white:'سفید',gray:'طوسی',navy:'سرمه‌ای',blue:'آبی',beige:'بژ',brown:'قهوه‌ای',green:'سبز',red:'قرمز',other:'سایر'})[c]||c}
+function colorFa(c){return ({black:'مشکی',white:'سفید',ivory:'شیری',gray_light:'طوسی روشن',gray:'طوسی',charcoal:'زغالی',navy:'سرمه‌ای',petrol_blue:'آبی نفتی',blue:'آبی',light_blue:'آبی روشن',denim_blue:'جین آبی',cream:'کرم',beige:'بژ',camel:'شتری',khaki:'خاکی',brown_light:'قهوه‌ای روشن',brown:'قهوه‌ای',brown_dark:'قهوه‌ای تیره',green:'سبز',jade:'یشمی',olive:'زیتونی',red:'قرمز',burgundy:'زرشکی',brick:'آجری',orange:'نارنجی',mustard:'خردلی',yellow:'زرد',pink:'صورتی',peach:'گلبهی',purple:'بنفش',lilac:'یاسی',other:'سایر'})[c]||c}
 
 function goPage(id){
  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
@@ -123,9 +123,9 @@ function removeItem(id){if(confirm('این لباس حذف شود؟')) saveItems
 
 function renderHome(){
  const items=loadItems();
- document.getElementById('countItems').textContent=items.length;
  document.getElementById('countTops').textContent=items.filter(x=>x.category==='top').length;
  document.getElementById('countBottoms').textContent=items.filter(x=>x.category==='bottom').length;
+ document.getElementById('countShoes').textContent=items.filter(x=>x.category==='shoe').length;
  const recent=items.slice(-4).reverse();
  document.getElementById('recentItems').innerHTML=recent.length?recent.map(itemCard).join(''):`<div class="empty">هنوز لباسی ثبت نشده.</div>`;
 }
@@ -144,8 +144,10 @@ function itemOccasions(i){return Array.isArray(i.occasions)&&i.occasions.length?
 function seasonMatches(i,season){if(season==='all')return true;const ss=itemSeasons(i);if(ss.includes('all'))return true;/* هوا=گرم را مثل شرایط تابستانی در نظر می‌گیریم؛ صرفاً مناسبِ بهار بودن کافی نیست. */if(season==='warm')return ss.some(x=>['warm','summer'].includes(x));if(season==='cold')return ss.some(x=>['cold','fall','winter'].includes(x));return ss.includes(season)}
 function colorPairScore(a,b){
  if(!a||!b)return 0;
- if(a===b)return ['black','white','gray','navy','beige'].includes(a)?9:6;
- if((compat[a]||[]).includes(b)||(compat[b]||[]).includes(a))return 10;
+ const fa=colorFamily[a]||'other',fb=colorFamily[b]||'other';
+ if(a===b)return fa==='neutral'?9:7;
+ if(fa==='neutral'||fb==='neutral')return 10;
+ if((compat[fa]||[]).includes(fb)||(compat[fb]||[]).includes(fa))return 10;
  return 3;
 }
 function fitPairScore(top,bottom){
