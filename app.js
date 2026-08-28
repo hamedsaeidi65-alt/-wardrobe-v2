@@ -1309,12 +1309,22 @@ v31Evaluate = function(items,occasion,weather){
 };
 
 
-// ===== V3.7 — Fixed Mannequin + Free Hugging Face VTON =====
+// ===== V3.7.1 — Fixed Mannequin + Free Hugging Face VTON =====
 const VTON_SPACE = "fashn-ai/fashn-vton-1.5";
 let vtonClient = null;
 
 function openMannequinPreview(){
-  document.getElementById('mannequinModal')?.classList.add('show');
+  const modal=document.getElementById('mannequinModal');
+  const wrap=document.getElementById('vtonResultWrap');
+  if(wrap) wrap.innerHTML='<img src="mannequin-fixed.jpeg" alt="مانکن مرجع" class="vton-output-image">';
+  vtonSetStatus('مانکن مرجع ثابت','');
+  modal?.classList.add('show');
+}
+function openVtonProgress(){
+  const modal=document.getElementById('mannequinModal');
+  const wrap=document.getElementById('vtonResultWrap');
+  if(wrap) wrap.innerHTML='<div class="vton-loader"><div class="vton-spinner"></div><strong>در حال ساخت پرو…</strong><span>لباس‌ها روی مانکن ثابت پردازش می‌شوند.</span></div>';
+  modal?.classList.add('show');
 }
 function closeMannequinPreview(e,force=false){
   const modal=document.getElementById('mannequinModal');
@@ -1408,12 +1418,8 @@ async function previewOutfitOnMannequin(idx){
   const selected=outfit.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);
   const r=vtonRenderableItems(selected);
 
-  openMannequinPreview();
+  openVtonProgress();
   const wrap=document.getElementById('vtonResultWrap');
-  if(wrap)wrap.innerHTML='<div class="vton-empty">آماده اجرای پرو…</div>';
-
-  const info=document.querySelector('#mannequinModal .mannequin-modal-info');
-  if(info)info.innerHTML=`<strong>پرو ست ${idx+1}</strong><span>${selected.map(i=>i.name||catFa(i.category)).join(' + ')}</span>`;
 
   if(!r.top && !r.bottom && !r.outer && !r.onePiece){
     vtonSetStatus('برای پرو، حداقل عکس یک بالاتنه یا پایین‌تنه لازم است.','error');

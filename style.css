@@ -183,3 +183,11 @@ legend{padding:0 6px;color:#d9d6cf;font-size:14px}
  .mannequin-outfit-body{grid-template-columns:92px 1fr}
  .mannequin-outfit-img{width:92px;height:138px}
 }
+
+.vton-result-only{width:min(92vw,520px)}
+.vton-result-title{margin:4px 0 12px;font-size:15px}
+.vton-result-large{min-height:430px}
+.vton-loader{display:flex;min-height:390px;align-items:center;justify-content:center;flex-direction:column;gap:10px;padding:20px;text-align:center;color:var(--muted)}
+.vton-loader strong{color:var(--text)}
+.vton-spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:currentColor;border-radius:50%;animation:vtonspin .9s linear infinite}
+@keyframes vtonspin{to{transform:rotate(360deg)}}
