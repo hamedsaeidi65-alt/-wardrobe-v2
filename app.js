@@ -385,7 +385,7 @@ function generateOutfit(){
         <span>تعادل بصری ${b.visual}/5</span>
       </div>
 
-      <div class="v31-why"><strong>چرا این رتبه؟</strong><br>${v31Why(c,unique[idx+1])}</div>${v32WhyCard(c)}
+      <div class="v31-why"><strong>چرا این رتبه؟</strong><br>${v31Why(c,unique[idx+1])}</div>${v321AllAuditCard(c)}
       <div class="outfit-items">${c.items.map(itemCard).join('')}</div>
       <button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button>
     </div>`;
@@ -886,3 +886,111 @@ function v32WhyCard(result){
     </details>
   `).join('');
 }
+
+
+// ===== V3.2.1: category-aware thermal logic + all 8 auditable criteria =====
+function v321PenaltyAudit(maxScore, penalties, positives=[]){
+  const totalPenalty = penalties.reduce((s,p)=>s+Math.max(0,p.points||0),0);
+  const score = Math.max(0, maxScore-totalPenalty);
+  const lines = [
+    `امتیاز پایه: ${maxScore}/${maxScore}`,
+    ...positives.map(t=>`✓ ${t}`),
+    ...penalties.map(p=>`− ${p.points} | ${p.text}`),
+    `نتیجه: ${maxScore}${totalPenalty?` − ${totalPenalty}`:''} = ${score}/${maxScore}`
+  ];
+  return {score, lines};
+}
+function v321WeatherAudit(items, weather){
+  const penalties=[], positives=[];
+  if(weather==='all') return v321PenaltyAudit(15,[],['محدودیت آب‌وهوایی انتخاب نشده است']);
+
+  const top=items.find(i=>i.category==='top');
+  const outer=items.find(i=>i.category==='outer' || v32LayerRole(i)==='outer');
+  const bottom=items.find(i=>i.category==='bottom');
+  const shoe=items.find(i=>i.category==='shoe');
+
+  // Layering belongs to upper-body garments only.
+  if(top){
+    const w=v32Warmth(top), role=v32LayerRole(top);
+    if(weather==='cold'){
+      if((role==='mid' || (role==='standalone' && w==='medium')) && !outer)
+        penalties.push({points:3,text:`${top.name||'بالاتنه'} در سرما به لایه بیرونی نیاز دارد`});
+      else positives.push(`${top.name||'بالاتنه'} از نظر گرمادهی مناسب است`);
+    } else if(weather==='mild'){
+      if(w==='warm') penalties.push({points:2,text:`${top.name||'بالاتنه'} برای هوای معتدل کمی گرم است`});
+      else positives.push(`${top.name||'بالاتنه'} برای هوای معتدل مناسب است`);
+    } else if(weather==='hot'){
+      if(w==='warm') penalties.push({points:8,text:`${top.name||'بالاتنه'} برای هوای گرم بیش از حد گرم است`});
+      else if(w==='medium') penalties.push({points:3,text:`${top.name||'بالاتنه'} برای هوای گرم نسبتاً گرم است`});
+      else positives.push(`${top.name||'بالاتنه'} برای هوای گرم مناسب است`);
+    }
+  }
+  if(bottom){
+    // no "outer layer" concept for trousers
+    if(weather==='cold' && v32Warmth(bottom)==='light')
+      penalties.push({points:2,text:`${bottom.name||'شلوار'} برای هوای سرد سبک است`});
+    else positives.push(`${bottom.name||'شلوار'} از نظر پوشش پا با هوا سازگار است`);
+  }
+  if(shoe){
+    // footwear evaluated independently: warmth/material/coverage, never layering
+    const ankle=shoe.details?.ankleHeight||shoe.ankleHeight||'low';
+    const mat=String(shoe.material||shoe.details?.material||'').toLowerCase();
+    if(weather==='cold' && ankle==='low' && (mat.includes('mesh')||mat.includes('مش')))
+      penalties.push({points:2,text:`${shoe.name||'کفش'} ساق کوتاه و رویه مش دارد و برای سرما ضعیف‌تر است`});
+    else positives.push(`${shoe.name||'کفش'} از نظر پوشش و جنس با هوا قابل استفاده است`);
+  }
+  return v321PenaltyAudit(15,penalties,positives);
+}
+function v321SimpleAudit(title,max,score,goodText){
+  const penalty=Math.max(0,max-score);
+  return v321PenaltyAudit(max, penalty?[{points:penalty,text:goodText}]:[], penalty?[]:[goodText]);
+}
+const _v31Evaluate321 = v31Evaluate;
+v31Evaluate = function(items,occasion,weather){
+  const r=_v31Evaluate321(items,occasion,weather);
+  if(r.hardFail) return r;
+
+  const oldWeather=r.breakdown.season||0;
+  const weatherAudit=v321WeatherAudit(items,weather);
+  r.score = Math.max(0,Math.min(100,r.score-oldWeather+weatherAudit.score));
+  r.breakdown.season=weatherAudit.score;
+
+  r.audit=r.audit||{};
+  r.audit.color=v321SimpleAudit('رنگ',25,r.breakdown.color,
+    r.breakdown.color===25?'خانواده‌های رنگی و کنتراست ست هماهنگ‌اند':'هماهنگی رنگی به امتیاز کامل نرسیده است');
+  r.audit.silhouette=v321SimpleAudit('سیلوئت',20,r.breakdown.silhouette,
+    r.breakdown.silhouette===20?'تناسب حجم و فرم بالاتنه، پایین‌تنه و کفش متعادل است':'تناسب فرم و حجم اجزای ست کامل نیست');
+  r.audit.occasion=v321SimpleAudit('موقعیت',15,r.breakdown.occasion,
+    r.breakdown.occasion===15?'سطح استایل اجزا با موقعیت انتخابی کاملاً هماهنگ است':'بعضی اجزا با موقعیت انتخابی فاصله دارند');
+  r.audit.weather=weatherAudit;
+  r.audit.shoeTrouser=v321SimpleAudit('کفش/شلوار',10,r.breakdown.shoeTrouser,
+    r.breakdown.shoeTrouser===10?'حجم، فرم و ارتباط کفش با شلوار مناسب است':'رابطه فرم/حجم کفش و شلوار به امتیاز کامل نرسیده است');
+  r.audit.formality=v321SimpleAudit('رسمیت',5,r.breakdown.formality,
+    r.breakdown.formality===5?'سطح رسمیت ست با موقعیت هماهنگ است':'سطح رسمیت کمی با موقعیت فاصله دارد');
+  r.audit.echo=v321SimpleAudit('Color Echo',5,r.breakdown.echo,
+    r.breakdown.echo===5?'یک رنگ یا خانواده رنگی به‌صورت کنترل‌شده در ست تکرار شده است':'تکرار رنگی بین اجزا ضعیف‌تر است');
+  r.audit.visual=v321SimpleAudit('تعادل بصری',5,r.breakdown.visual,
+    r.breakdown.visual===5?'وزن بصری روشن/تیره و توزیع رنگ متعادل است':'توزیع وزن بصری ست کاملاً متعادل نیست');
+  return r;
+};
+function v321AllAuditCard(result){
+ const a=result.audit||{};
+ const defs=[
+  ['رنگ',a.color,25],['سیلوئت',a.silhouette,20],['موقعیت',a.occasion,15],['هوا',a.weather,15],
+  ['کفش/شلوار',a.shoeTrouser,10],['رسمیت',a.formality,5],['Color Echo',a.echo,5],['تعادل بصری',a.visual,5]
+ ];
+ return defs.filter(x=>x[1]).map(([title,o,max])=>`
+  <details class="audit-detail">
+   <summary>${title} — ${o.score}/${max}</summary>
+   <div class="audit-lines">${o.lines.map(x=>`<div>${x}</div>`).join('')}</div>
+  </details>`).join('');
+}
+
+function v321ToggleThermalFields(){
+ const cat=document.getElementById('category')?.value;
+ const box=document.getElementById('thermalLayerFields');
+ if(!box) return;
+ box.style.display=(cat==='top'||cat==='outer')?'grid':'none';
+}
+document.getElementById('category')?.addEventListener('change',v321ToggleThermalFields);
+setTimeout(v321ToggleThermalFields,0);

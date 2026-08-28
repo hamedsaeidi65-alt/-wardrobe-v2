@@ -142,3 +142,5 @@ legend{padding:0 6px;color:#d9d6cf;font-size:14px}
 .audit-detail summary{cursor:pointer;padding:11px 12px;color:var(--text);font-size:12px;font-weight:700}
 .audit-lines{padding:0 12px 12px;color:var(--muted);font-size:11px;line-height:1.9}
 .audit-lines div+div{margin-top:4px}
+
+.audit-lines div:last-child{font-weight:800;color:var(--text);margin-top:8px}
