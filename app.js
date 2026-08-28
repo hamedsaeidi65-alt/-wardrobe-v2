@@ -1309,7 +1309,10 @@ v31Evaluate = function(items,occasion,weather){
 };
 
 
-// ===== V3.6 — Fixed Mannequin UI =====
+// ===== V3.7 — Fixed Mannequin + Free Hugging Face VTON =====
+const VTON_SPACE = "fashn-ai/fashn-vton-1.5";
+let vtonClient = null;
+
 function openMannequinPreview(){
   document.getElementById('mannequinModal')?.classList.add('show');
 }
@@ -1317,15 +1320,141 @@ function closeMannequinPreview(e,force=false){
   const modal=document.getElementById('mannequinModal');
   if(force || e?.target===modal) modal?.classList.remove('show');
 }
-function previewOutfitOnMannequin(idx){
+function vtonSetStatus(text,kind=''){
+  const el=document.getElementById('vtonStatus');
+  if(!el)return;
+  el.className='vton-status '+kind;
+  el.textContent=text||'';
+}
+async function vtonWaitForClient(){
+  if(window.GradioClient && window.gradioHandleFile) return;
+  await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>reject(new Error('کتابخانه اتصال به Hugging Face لود نشد.')),12000);
+    window.addEventListener('gradio-client-ready',()=>{clearTimeout(timer);resolve();},{once:true});
+  });
+}
+async function vtonGetClient(){
+  await vtonWaitForClient();
+  if(!vtonClient){
+    vtonSetStatus('در حال اتصال به سرویس رایگان Hugging Face…','loading');
+    vtonClient=await window.GradioClient.connect(VTON_SPACE,{
+      status_callback:(s)=>{
+        if(s?.status==='sleeping') vtonSetStatus('سرویس در حال بیدار شدن است…','loading');
+        if(s?.status==='space_error') vtonSetStatus('سرویس Hugging Face موقتاً خطا دارد.','error');
+      }
+    });
+  }
+  return vtonClient;
+}
+function dataUrlToBlob(dataUrl){
+  const [head,data]=dataUrl.split(',');
+  const mime=(head.match(/data:(.*?);/)||[])[1]||'image/jpeg';
+  const bytes=atob(data);
+  const arr=new Uint8Array(bytes.length);
+  for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);
+  return new Blob([arr],{type:mime});
+}
+async function sourceToBlob(src){
+  if(src instanceof Blob)return src;
+  if(typeof src==='string' && src.startsWith('data:'))return dataUrlToBlob(src);
+  const res=await fetch(src);
+  if(!res.ok)throw new Error('دریافت تصویر ناموفق بود.');
+  return await res.blob();
+}
+function vtonOutputUrl(result){
+  const out=result?.data?.[0];
+  if(!out)return null;
+  if(typeof out==='string')return out;
+  return out.url || out.path || null;
+}
+async function runSingleVton(personSource, garmentSource, category){
+  const client=await vtonGetClient();
+  const personBlob=await sourceToBlob(personSource);
+  const garmentBlob=await sourceToBlob(garmentSource);
+  const args={
+    person_image: window.gradioHandleFile(personBlob),
+    garment_image: window.gradioHandleFile(garmentBlob),
+    category,
+    garment_photo_type:'flat-lay',
+    num_timesteps:20,
+    guidance_scale:1.5,
+    seed:42,
+    segmentation_free:true
+  };
+  let result;
+  try{
+    result=await client.predict('/try_on',args);
+  }catch(e){
+    // Fallback for spaces where Gradio exposes a generic endpoint name.
+    try{ result=await client.predict('/predict',args); }
+    catch(e2){ throw e; }
+  }
+  const url=vtonOutputUrl(result);
+  if(!url)throw new Error('سرویس تصویر خروجی برنگرداند.');
+  return url;
+}
+function vtonRenderableItems(selected){
+  const top=selected.find(i=>i.category==='top' && i.photo);
+  const bottom=selected.find(i=>i.category==='bottom' && i.photo);
+  const outer=selected.find(i=>i.category==='outer' && i.photo);
+  const onePiece=selected.find(i=>i.category==='one-piece' && i.photo);
+  const shoe=selected.find(i=>i.category==='shoe');
+  return {top,bottom,outer,onePiece,shoe};
+}
+async function previewOutfitOnMannequin(idx){
   const outfit=window.currentSuggestedOutfits?.[idx];
-  if(!outfit) return;
+  if(!outfit)return;
   const items=loadItems();
   const selected=outfit.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);
-  window.v36PendingTryOn={outfit,items:selected,mannequin:'mannequin-fixed.jpeg'};
-  const modal=document.getElementById('mannequinModal');
-  if(!modal) return;
-  modal.classList.add('show');
-  const info=modal.querySelector('.mannequin-modal-info');
-  if(info) info.innerHTML=`<strong>مانکن ثابت — آماده پرو</strong><span>${selected.map(i=>i.name||catFa(i.category)).join(' + ')}</span><small>مرجع مانکن قفل است؛ در اتصال VTON فقط لباس‌ها تغییر می‌کنند.</small>`;
+  const r=vtonRenderableItems(selected);
+
+  openMannequinPreview();
+  const wrap=document.getElementById('vtonResultWrap');
+  if(wrap)wrap.innerHTML='<div class="vton-empty">آماده اجرای پرو…</div>';
+
+  const info=document.querySelector('#mannequinModal .mannequin-modal-info');
+  if(info)info.innerHTML=`<strong>پرو ست ${idx+1}</strong><span>${selected.map(i=>i.name||catFa(i.category)).join(' + ')}</span>`;
+
+  if(!r.top && !r.bottom && !r.outer && !r.onePiece){
+    vtonSetStatus('برای پرو، حداقل عکس یک بالاتنه یا پایین‌تنه لازم است.','error');
+    return;
+  }
+
+  if([r.top,r.bottom,r.outer,r.onePiece].filter(Boolean).some(i=>!i.photo)){
+    vtonSetStatus('یکی از لباس‌های قابل پرو عکس ندارد.','error');
+    return;
+  }
+
+  try{
+    let person='mannequin-fixed.jpeg';
+    let step=0;
+    const jobs=[];
+
+    if(r.onePiece){
+      jobs.push({item:r.onePiece,category:'one-pieces',label:'لباس یک‌تکه'});
+    }else{
+      if(r.top) jobs.push({item:r.top,category:'tops',label:'بالاتنه'});
+      if(r.bottom) jobs.push({item:r.bottom,category:'bottoms',label:'پایین‌تنه'});
+      if(r.outer) jobs.push({item:r.outer,category:'tops',label:'رویه'});
+    }
+
+    for(const job of jobs){
+      step++;
+      vtonSetStatus(`در حال پرو ${job.label} (${step}/${jobs.length})… ممکن است به‌دلیل صف ZeroGPU کمی زمان ببرد.`,'loading');
+      person=await runSingleVton(person,job.item.photo,job.category);
+    }
+
+    if(wrap)wrap.innerHTML=`<img src="${person}" alt="نتیجه پرو مجازی" class="vton-output-image">`;
+    let note='پرو رایگان انجام شد.';
+    if(r.shoe) note+=' کفش توسط FASHN VTON 1.5 تغییر نمی‌کند و همان کفش مرجع مانکن باقی می‌ماند.';
+    vtonSetStatus(note,'success');
+  }catch(err){
+    console.error('VTON error',err);
+    const msg=String(err?.message||err||'خطای نامشخص');
+    vtonSetStatus(
+      'اتصال به سرویس رایگان ناموفق بود. ممکن است سهمیه ZeroGPU تمام شده، صف شلوغ باشد یا Space موقتاً در دسترس نباشد. '+msg,
+      'error'
+    );
+  }
 }
+

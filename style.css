@@ -160,3 +160,26 @@ legend{padding:0 6px;color:#d9d6cf;font-size:14px}
 .mannequin-profile-img{width:100%;max-height:430px;object-fit:contain;border-radius:14px;background:#e9e9e7;display:block}
 .mannequin-specs{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:10px}.mannequin-specs span{padding:7px 9px;border:1px solid var(--line);border-radius:10px;font-size:11px;text-align:center}
 .mannequin-preview-btn{width:100%;margin-top:10px}.mannequin-modal{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;padding:18px}.mannequin-modal.show{display:flex}.mannequin-modal-card{position:relative;width:min(440px,100%);max-height:92vh;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:12px}.mannequin-modal-card img{width:100%;display:block;border-radius:14px;background:#eee}.mannequin-close{position:absolute;top:18px;left:18px;width:36px;height:36px;border-radius:50%;z-index:2;font-size:24px}.mannequin-modal-info{padding:12px 4px 2px;display:flex;flex-direction:column;gap:4px}.mannequin-modal-info span,.mannequin-modal-info small{color:var(--muted);font-size:11px}.outfit-actions-v36{display:grid;grid-template-columns:1fr 1fr;gap:8px}.outfit-actions-v36 button{width:100%}
+
+.mannequin-outfit-card{padding:15px;margin:12px 0 16px}
+.mannequin-outfit-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:12px}
+.mannequin-outfit-body{display:grid;grid-template-columns:108px 1fr;gap:14px;align-items:center}
+.mannequin-outfit-img{width:108px;height:155px;object-fit:cover;object-position:top;border-radius:14px;border:1px solid var(--line)}
+.mannequin-outfit-copy p{color:var(--muted);font-size:12px;line-height:1.9;margin:0 0 10px}
+.vton-service-note{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
+.vton-modal-card{width:min(94vw,760px);max-height:92vh;overflow:auto}
+.vton-modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.vton-label{font-size:12px;color:var(--muted);margin-bottom:7px}
+.vton-main-image,.vton-output-image{width:100%;aspect-ratio:2/3;object-fit:cover;object-position:top;border-radius:14px;background:#242428}
+.vton-result-wrap{min-height:280px;border:1px dashed var(--line);border-radius:14px;display:grid;place-items:center;overflow:hidden;background:#151518}
+.vton-empty{padding:18px;color:var(--muted);font-size:12px;text-align:center}
+.vton-status{margin-top:12px;padding:11px 12px;border-radius:12px;font-size:12px;line-height:1.8;background:var(--card2)}
+.vton-status.loading{color:var(--gold)}
+.vton-status.success{color:#9bd3a6}
+.vton-status.error{color:var(--danger)}
+.vton-limitations{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.8}
+@media(max-width:520px){
+ .vton-modal-grid{grid-template-columns:1fr 1fr}
+ .mannequin-outfit-body{grid-template-columns:92px 1fr}
+ .mannequin-outfit-img{width:92px;height:138px}
+}

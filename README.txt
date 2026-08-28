@@ -95,3 +95,12 @@ V3.5 — Context-Aware Color Strategy Engine
 
 
 V3.6: Fixed mannequin embedded in Profile + try-on UI foundation. Mannequin reference is locked; only outfit items are intended to change.
+
+
+V3.7 — Free VTON Integration
+- مانکن از پروفایل به بخش «ست» منتقل شد.
+- اتصال مستقیم از PWA به Hugging Face Space عمومی fashn-ai/fashn-vton-1.5 با @gradio/client.
+- بدون API Key و بدون سرور پولی.
+- اجرای ترتیبی بالاتنه و پایین‌تنه روی همان مانکن ثابت.
+- مدل FASHN VTON 1.5 فقط tops / bottoms / one-pieces را پشتیبانی می‌کند و کفش را تغییر نمی‌دهد.
+- سرویس ZeroGPU رایگان است اما صف و سهمیه روزانه دارد؛ در صورت شلوغی ممکن است موقتاً اجرا نشود.

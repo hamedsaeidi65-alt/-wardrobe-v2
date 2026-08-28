@@ -11,7 +11,7 @@
 <body>
   <header class="topbar">
     <div>
-      <div class="eyebrow">WARDROBE V3.6</div>
+      <div class="eyebrow">WARDROBE V3.7</div>
       <h1>استایل شخصی من</h1>
     </div>
     <button class="icon-btn" id="installBtn" hidden>＋ نصب</button>
@@ -207,6 +207,27 @@
         <button class="primary" onclick="generateOutfit()">ساخت ست</button>
       </div>
 
+      
+      <div class="card mannequin-outfit-card">
+        <div class="mannequin-outfit-head">
+          <div>
+            <strong>مانکن ثابت پرو مجازی</strong>
+            <div class="mini-note">مرد • ۴۰ سال • ۱۸۲ cm • ۹۰ kg</div>
+          </div>
+          <span class="mannequin-lock">🔒 ثابت</span>
+        </div>
+        <div class="mannequin-outfit-body">
+          <img src="mannequin-fixed.jpeg" alt="مانکن ثابت" class="mannequin-outfit-img">
+          <div class="mannequin-outfit-copy">
+            <p>چهره و اندام این مانکن در همه پروها ثابت می‌ماند. فقط لباس‌ها تغییر می‌کنند.</p>
+            <button class="secondary" type="button" onclick="openMannequinPreview()">نمایش مانکن تمام‌قد</button>
+          </div>
+        </div>
+        <div class="vton-service-note">
+          موتور رایگان: FASHN VTON 1.5 روی Hugging Face ZeroGPU
+        </div>
+      </div>
+
       <div id="outfitResult"></div>
     </section>
     <section id="saved" class="page">
@@ -220,28 +241,41 @@
         <div class="profile-mark">W</div>
         <h3>استایل شخصی</h3>
         <p>تنظیمات شخصی‌سازی استایل، سایزها، برندهای موردعلاقه و ترجیحات پوشش در نسخه‌های بعدی اینجا قرار می‌گیرند.</p>
-        <div class="mannequin-profile">
-          <div class="mannequin-title"><strong>مانکن ثابت من</strong><span class="mannequin-lock">🔒 ثابت</span></div>
-          <img src="mannequin-fixed.jpeg" alt="مانکن ثابت" class="mannequin-profile-img">
-          <div class="mannequin-specs">
-            <span>مرد</span><span>۴۰ سال</span><span>قد ۱۸۲ cm</span><span>وزن ۹۰ kg</span>
-          </div>
-          <p class="mini-note">چهره، مو، اندام و نسبت‌های بدن این مانکن مرجع ثابت پرو مجازی هستند و فقط لباس، کفش و اکسسوری تغییر می‌کنند.</p>
-          <button class="secondary mannequin-preview-btn" type="button" onclick="openMannequinPreview()">نمایش تمام‌قد مانکن</button>
-        </div>
-        <div class="profile-row"><span>نسخه اپ</span><strong>3.6</strong></div>
+        <div class="profile-row"><span>مانکن مرجع</span><strong>ثابت و قفل‌شده</strong></div>
+        <div class="profile-row"><span>نسخه اپ</span><strong>3.7</strong></div>
         <div class="profile-row"><span>ذخیره اطلاعات</span><strong>روی همین گوشی</strong></div>
       </div>
     </section>
 
   </main>
 
+  
   <div id="mannequinModal" class="mannequin-modal" onclick="closeMannequinPreview(event)">
-    <div class="mannequin-modal-card">
+    <div class="mannequin-modal-card vton-modal-card">
       <button class="mannequin-close" onclick="closeMannequinPreview(event,true)">×</button>
-      <img src="mannequin-fixed.jpeg" alt="مانکن ثابت تمام‌قد">
-      <div class="mannequin-modal-info"><strong>مانکن ثابت</strong><span>۱۸۲ cm • ۹۰ kg • ۴۰ سال • مرد</span></div>
+      <div class="vton-modal-grid">
+        <div>
+          <div class="vton-label">مانکن مرجع</div>
+          <img id="vtonMannequinImage" src="mannequin-fixed.jpeg" alt="مانکن ثابت تمام‌قد" class="vton-main-image">
+        </div>
+        <div>
+          <div class="vton-label">نتیجه پرو</div>
+          <div id="vtonResultWrap" class="vton-result-wrap">
+            <div class="vton-empty">هنوز پرو اجرا نشده است.</div>
+          </div>
+        </div>
+      </div>
+      <div class="mannequin-modal-info">
+        <strong>مانکن ثابت</strong>
+        <span>۱۸۲ cm • ۹۰ kg • ۴۰ سال • مرد</span>
+      </div>
+      <div id="vtonStatus" class="vton-status"></div>
+      <div id="vtonLimitations" class="vton-limitations">
+        مدل رایگان فعلی بالاتنه، پایین‌تنه و لباس یک‌تکه را پشتیبانی می‌کند. کفش را تغییر نمی‌دهد.
+      </div>
     </div>
+  </div>
+
   </div>
 
   <nav class="bottom-nav">
@@ -259,6 +293,14 @@
     });
   }
   </script>
-  <script src="app.js?v=360"></script>
+  
+  <script type="module">
+    import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client@2.4.0/dist/index.min.js";
+    window.GradioClient = Client;
+    window.gradioHandleFile = handle_file;
+    window.dispatchEvent(new Event("gradio-client-ready"));
+  </script>
+
+  <script src="app.js?v=370"></script>
 </body>
 </html>
