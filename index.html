@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#111111"/>
   <title>Wardrobe V2</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=371"/>
+  <link rel="stylesheet" href="style.css?v=372"/>
 </head>
 <body>
   <header class="topbar">
     <div>
-      <div class="eyebrow">WARDROBE V3.7.1</div>
+      <div class="eyebrow">WARDROBE V3.7.2</div>
       <h1>استایل شخصی من</h1>
     </div>
     <button class="icon-btn" id="installBtn" hidden>＋ نصب</button>
@@ -225,6 +225,8 @@
         </div>
         <div class="vton-service-note">
           موتور رایگان: FASHN VTON 1.5 روی Hugging Face ZeroGPU
+          <div id="vtonConnectionState" class="vton-connection-state">وضعیت اتصال: بررسی نشده</div>
+          <button class="text-btn vton-test-btn" type="button" onclick="testVtonConnection()">تست اتصال رایگان</button>
         </div>
       </div>
 
@@ -242,7 +244,7 @@
         <h3>استایل شخصی</h3>
         <p>تنظیمات شخصی‌سازی استایل، سایزها، برندهای موردعلاقه و ترجیحات پوشش در نسخه‌های بعدی اینجا قرار می‌گیرند.</p>
         <div class="profile-row"><span>مانکن مرجع</span><strong>ثابت و قفل‌شده</strong></div>
-        <div class="profile-row"><span>نسخه اپ</span><strong>3.7.1</strong></div>
+        <div class="profile-row"><span>نسخه اپ</span><strong>3.7.2</strong></div>
         <div class="profile-row"><span>ذخیره اطلاعات</span><strong>روی همین گوشی</strong></div>
       </div>
     </section>
@@ -297,12 +299,12 @@
   </script>
   
   <script type="module">
-    import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client@2.4.0/dist/index.min.js";
+    import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
     window.GradioClient = Client;
     window.gradioHandleFile = handle_file;
     window.dispatchEvent(new Event("gradio-client-ready"));
   </script>
 
-  <script src="app.js?v=371"></script>
+  <script src="app.js?v=372"></script>
 </body>
 </html>

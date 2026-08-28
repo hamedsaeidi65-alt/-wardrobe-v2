@@ -1309,9 +1309,11 @@ v31Evaluate = function(items,occasion,weather){
 };
 
 
-// ===== V3.7.1 — Fixed Mannequin + Free Hugging Face VTON =====
+// ===== V3.7.2 — Auto-Discovered Gradio API + Free ZeroGPU VTON =====
 const VTON_SPACE = "fashn-ai/fashn-vton-1.5";
 let vtonClient = null;
+let vtonEndpoint = null;
+let vtonEndpointInfo = null;
 
 function openMannequinPreview(){
   const modal=document.getElementById('mannequinModal');
@@ -1323,7 +1325,7 @@ function openMannequinPreview(){
 function openVtonProgress(){
   const modal=document.getElementById('mannequinModal');
   const wrap=document.getElementById('vtonResultWrap');
-  if(wrap) wrap.innerHTML='<div class="vton-loader"><div class="vton-spinner"></div><strong>در حال ساخت پرو…</strong><span>لباس‌ها روی مانکن ثابت پردازش می‌شوند.</span></div>';
+  if(wrap) wrap.innerHTML='<div class="vton-loader"><div class="vton-spinner"></div><strong>در حال ساخت پرو…</strong><span>در حال اتصال به صف رایگان ZeroGPU</span></div>';
   modal?.classList.add('show');
 }
 function closeMannequinPreview(e,force=false){
@@ -1336,25 +1338,98 @@ function vtonSetStatus(text,kind=''){
   el.className='vton-status '+kind;
   el.textContent=text||'';
 }
+function vtonConnectionText(text,kind=''){
+  const el=document.getElementById('vtonConnectionState');
+  if(!el)return;
+  el.className='vton-connection-state '+kind;
+  el.textContent='وضعیت اتصال: '+text;
+}
 async function vtonWaitForClient(){
   if(window.GradioClient && window.gradioHandleFile) return;
   await new Promise((resolve,reject)=>{
-    const timer=setTimeout(()=>reject(new Error('کتابخانه اتصال به Hugging Face لود نشد.')),12000);
+    const timer=setTimeout(()=>reject(new Error('کتابخانه اتصال Gradio لود نشد.')),15000);
     window.addEventListener('gradio-client-ready',()=>{clearTimeout(timer);resolve();},{once:true});
   });
 }
+function vtonNormalize(s){
+  return String(s||'').toLowerCase().replace(/[_\-\s]+/g,' ');
+}
+function vtonLooksLikeTryOn(info){
+  const ps=(info?.parameters||[]).map(p=>vtonNormalize(p?.label||p?.parameter_name||p?.name));
+  if(ps.length<8) return false;
+  const joined=ps.join('|');
+  return (
+    joined.includes('person') &&
+    joined.includes('garment') &&
+    joined.includes('category') &&
+    (joined.includes('sampling') || joined.includes('timesteps') || joined.includes('steps'))
+  );
+}
+function vtonDiscoverEndpoint(api){
+  const named=api?.named_endpoints||{};
+  const unnamed=api?.unnamed_endpoints||{};
+
+  // Prefer the auto-generated function-name endpoint.
+  for(const [key,info] of Object.entries(named)){
+    if(key.toLowerCase().includes('try_on') || key.toLowerCase().includes('try-on')){
+      return {endpoint:key,info,named:true};
+    }
+  }
+  // Then match by the 8 input parameters.
+  for(const [key,info] of Object.entries(named)){
+    if(vtonLooksLikeTryOn(info)) return {endpoint:key,info,named:true};
+  }
+  // Gradio also exposes unnamed event endpoints by function index.
+  for(const [key,info] of Object.entries(unnamed)){
+    if(vtonLooksLikeTryOn(info)) return {endpoint:Number(key),info,named:false};
+  }
+
+  // Last-resort: if there is exactly one endpoint accepting ~8 parameters.
+  const allNamed=Object.entries(named).filter(([,info])=>(info?.parameters||[]).length>=8);
+  if(allNamed.length===1){
+    return {endpoint:allNamed[0][0],info:allNamed[0][1],named:true};
+  }
+  const allUnnamed=Object.entries(unnamed).filter(([,info])=>(info?.parameters||[]).length>=8);
+  if(allUnnamed.length===1){
+    return {endpoint:Number(allUnnamed[0][0]),info:allUnnamed[0][1],named:false};
+  }
+  return null;
+}
 async function vtonGetClient(){
   await vtonWaitForClient();
-  if(!vtonClient){
-    vtonSetStatus('در حال اتصال به سرویس رایگان Hugging Face…','loading');
-    vtonClient=await window.GradioClient.connect(VTON_SPACE,{
-      status_callback:(s)=>{
-        if(s?.status==='sleeping') vtonSetStatus('سرویس در حال بیدار شدن است…','loading');
-        if(s?.status==='space_error') vtonSetStatus('سرویس Hugging Face موقتاً خطا دارد.','error');
-      }
-    });
+  if(vtonClient && vtonEndpoint!==null) return vtonClient;
+
+  vtonConnectionText('در حال اتصال…','loading');
+  vtonClient=await window.GradioClient.connect(VTON_SPACE,{
+    status_callback:(s)=>{
+      const st=s?.status||s?.stage||'';
+      if(st==='sleeping') vtonConnectionText('Space در حال بیدار شدن…','loading');
+      if(st==='running') vtonConnectionText('Space روشن است','success');
+      if(st==='space_error') vtonConnectionText('خطای Space','error');
+    },
+    record_history:false
+  });
+
+  const api=await vtonClient.view_api();
+  const found=vtonDiscoverEndpoint(api);
+  if(!found){
+    console.error('FASHN VTON API info:',api);
+    throw new Error('endpoint پرو در API سرویس پیدا نشد.');
   }
+  vtonEndpoint=found.endpoint;
+  vtonEndpointInfo=found.info;
+  vtonConnectionText(`وصل شد (${String(vtonEndpoint)})`,'success');
   return vtonClient;
+}
+async function testVtonConnection(){
+  try{
+    await vtonGetClient();
+    alert('اتصال به سرویس رایگان برقرار است. endpoint پرو پیدا شد: '+String(vtonEndpoint));
+  }catch(e){
+    console.error(e);
+    vtonConnectionText('ناموفق','error');
+    alert('اتصال برقرار نشد: '+String(e?.message||e));
+  }
 }
 function dataUrlToBlob(dataUrl){
   const [head,data]=dataUrl.split(',');
@@ -1367,40 +1442,53 @@ function dataUrlToBlob(dataUrl){
 async function sourceToBlob(src){
   if(src instanceof Blob)return src;
   if(typeof src==='string' && src.startsWith('data:'))return dataUrlToBlob(src);
-  const res=await fetch(src);
+  const res=await fetch(src,{cache:'no-store'});
   if(!res.ok)throw new Error('دریافت تصویر ناموفق بود.');
   return await res.blob();
 }
 function vtonOutputUrl(result){
-  const out=result?.data?.[0];
+  const data=result?.data||[];
+  const out=data[0];
   if(!out)return null;
   if(typeof out==='string')return out;
-  return out.url || out.path || null;
+  if(out.url)return out.url;
+  if(out.path){
+    // Newer Gradio returns file objects with url most of the time;
+    // path alone cannot be rendered cross-origin safely.
+    return out.url||null;
+  }
+  return null;
+}
+function vtonPayload(personFile,garmentFile,category){
+  // app.py order:
+  // person_image, garment_image, category, garment_photo_type,
+  // num_timesteps, guidance_scale, seed, segmentation_free
+  return [
+    window.gradioHandleFile(personFile),
+    window.gradioHandleFile(garmentFile),
+    category,
+    'flat-lay',
+    20,
+    1.5,
+    42,
+    true
+  ];
 }
 async function runSingleVton(personSource, garmentSource, category){
   const client=await vtonGetClient();
   const personBlob=await sourceToBlob(personSource);
   const garmentBlob=await sourceToBlob(garmentSource);
-  const args={
-    person_image: window.gradioHandleFile(personBlob),
-    garment_image: window.gradioHandleFile(garmentBlob),
-    category,
-    garment_photo_type:'flat-lay',
-    num_timesteps:20,
-    guidance_scale:1.5,
-    seed:42,
-    segmentation_free:true
-  };
-  let result;
-  try{
-    result=await client.predict('/try_on',args);
-  }catch(e){
-    // Fallback for spaces where Gradio exposes a generic endpoint name.
-    try{ result=await client.predict('/predict',args); }
-    catch(e2){ throw e; }
-  }
+  const payload=vtonPayload(personBlob,garmentBlob,category);
+
+  vtonSetStatus(`در صف ZeroGPU برای ${category==='tops'?'بالاتنه':category==='bottoms'?'پایین‌تنه':'لباس'}…`,'loading');
+
+  // Positional payload is intentional: it follows the exact order exposed by app.py.
+  const result=await client.predict(vtonEndpoint,payload);
   const url=vtonOutputUrl(result);
-  if(!url)throw new Error('سرویس تصویر خروجی برنگرداند.');
+  if(!url){
+    console.error('Unexpected VTON result:',result);
+    throw new Error('سرویس اجرا شد اما آدرس تصویر خروجی برنگشت.');
+  }
   return url;
 }
 function vtonRenderableItems(selected){
@@ -1426,11 +1514,6 @@ async function previewOutfitOnMannequin(idx){
     return;
   }
 
-  if([r.top,r.bottom,r.outer,r.onePiece].filter(Boolean).some(i=>!i.photo)){
-    vtonSetStatus('یکی از لباس‌های قابل پرو عکس ندارد.','error');
-    return;
-  }
-
   try{
     let person='mannequin-fixed.jpeg';
     let step=0;
@@ -1446,21 +1529,27 @@ async function previewOutfitOnMannequin(idx){
 
     for(const job of jobs){
       step++;
-      vtonSetStatus(`در حال پرو ${job.label} (${step}/${jobs.length})… ممکن است به‌دلیل صف ZeroGPU کمی زمان ببرد.`,'loading');
+      vtonSetStatus(`در حال پرو ${job.label} (${step}/${jobs.length})… سرویس رایگان ممکن است صف داشته باشد.`,'loading');
       person=await runSingleVton(person,job.item.photo,job.category);
     }
 
     if(wrap)wrap.innerHTML=`<img src="${person}" alt="نتیجه پرو مجازی" class="vton-output-image">`;
     let note='پرو رایگان انجام شد.';
-    if(r.shoe) note+=' کفش توسط FASHN VTON 1.5 تغییر نمی‌کند و همان کفش مرجع مانکن باقی می‌ماند.';
+    if(r.shoe) note+=' مدل فعلی کفش را تغییر نمی‌دهد.';
     vtonSetStatus(note,'success');
   }catch(err){
     console.error('VTON error',err);
-    const msg=String(err?.message||err||'خطای نامشخص');
-    vtonSetStatus(
-      'اتصال به سرویس رایگان ناموفق بود. ممکن است سهمیه ZeroGPU تمام شده، صف شلوغ باشد یا Space موقتاً در دسترس نباشد. '+msg,
-      'error'
-    );
+    const raw=String(err?.message||err||'خطای نامشخص');
+    let friendly=raw;
+    if(/quota|gpu|zero.?gpu|duration|exceeded/i.test(raw))
+      friendly='سهمیه رایگان ZeroGPU فعلاً تمام شده است. بعد از ریست سهمیه دوباره امتحان کن.';
+    else if(/queue|full|max_size/i.test(raw))
+      friendly='صف رایگان فعلاً پر است. چند دقیقه بعد دوباره امتحان کن.';
+    else if(/endpoint/i.test(raw))
+      friendly='endpoint سرویس تغییر کرده یا موقتاً منتشر نشده است.';
+    else if(/network|fetch|connection|load/i.test(raw))
+      friendly='ارتباط مرورگر با Hugging Face برقرار نشد.';
+    vtonSetStatus('پرو انجام نشد: '+friendly,'error');
   }
 }
 
