@@ -390,9 +390,8 @@ function generateOutfit(){
       <div class="v31-why"><strong>چرا این رتبه؟</strong><br>${v31Why(c,unique[idx+1])}</div>${v321AllAuditCard(c)}${v33ImproveCard(c,occasion,weather)}
       <div class="outfit-items">${c.items.map(itemCard).join('')}</div>
       <div class="outfit-actions-v36">
-        
+        <button class="secondary chatgpt-tryon-btn" onclick="prepareChatgptTryon(${idx})">پرو در ChatGPT</button>
         <button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button>
-      <button class="secondary chatgpt-tryon-btn" onclick="prepareChatgptTryon(${idx})">پرو در ChatGPT</button>
       </div>
     </div>`;
   }).join('');
@@ -1311,7 +1310,7 @@ v31Evaluate = function(items,occasion,weather){
 
 
 
-// ===== WARDROBE V3.8 — ChatGPT Try-On Handoff =====
+// ===== V3.8.3 — ChatGPT Try-On Handoff (no API) =====
 const DEDICATED_TRYON_CHAT_URL = "https://chatgpt.com/g/g-p-6a910b96e16481919c8bf51cbfcaf84d-wardrobe-virtual-try-on/c/6a910b2c-9bf8-83eb-9102-3d7f4a83f84e";
 let preparedTryonBlob = null;
 let preparedTryonUrl = null;
@@ -1324,136 +1323,27 @@ function closeChatgptTryonModal(e, force=false){
   const modal=document.getElementById('chatgptTryonModal');
   if(force || e?.target===modal) modal?.classList.remove('show');
 }
-function chatgptTryonStatus(text, kind=''){
+function setTryonStatus(text,kind=''){
   const el=document.getElementById('chatgptTryonStatus');
-  if(!el) return;
+  if(!el)return;
   el.className='chatgpt-tryon-status '+kind;
   el.textContent=text||'';
 }
-
-async function imageSourceToBitmap(src){
-  const res=await fetch(src);
-  if(!res.ok) throw new Error('خواندن یکی از تصاویر لباس ناموفق بود.');
-  const blob=await res.blob();
-  return await createImageBitmap(blob);
+function getTryonOutfitItems(idx){
+  const outfit=window.currentSuggestedOutfits?.[idx];
+  if(!outfit)return [];
+  const all=loadItems();
+  return outfit.itemIds.map(id=>all.find(i=>i.id===id)).filter(Boolean);
 }
-
-function wrapTextCanvas(ctx, text, x, y, maxWidth, lineHeight, maxLines=3){
-  const words=String(text||'').split(/\s+/);
-  let line='', lines=[];
-  for(const word of words){
-    const test=line?line+' '+word:word;
-    if(ctx.measureText(test).width>maxWidth && line){
-      lines.push(line); line=word;
-      if(lines.length>=maxLines-1) break;
-    } else line=test;
-  }
-  if(line && lines.length<maxLines) lines.push(line);
-  lines.forEach((ln,i)=>ctx.fillText(ln,x,y+i*lineHeight));
+function loadCanvasImage(src){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>resolve(img);
+    img.onerror=()=>reject(new Error('یکی از تصاویر لباس خوانده نشد.'));
+    img.src=src;
+  });
 }
-
-function getTryonOutfitByIndex(idx){
-  const items=loadItems();
-  if(window.currentSuggestedOutfits?.[idx]){
-    const o=window.currentSuggestedOutfits[idx];
-    return o.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);
-  }
-  if(window.currentSuggestedOutfit?.itemIds){
-    return window.currentSuggestedOutfit.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);
-  }
-  return [];
-}
-
-async function buildSetCompositeImage(outfitItems, idx){
-  const items=outfitItems.filter(Boolean);
-  if(!items.length) throw new Error('آیتمی برای ساخت تصویر ست پیدا نشد.');
-
-  const W=1200, H=1350;
-  const canvas=document.createElement('canvas');
-  canvas.width=W; canvas.height=H;
-  const ctx=canvas.getContext('2d');
-
-  // Background
-  ctx.fillStyle='#111113'; ctx.fillRect(0,0,W,H);
-  ctx.fillStyle='#E8C77B';
-  ctx.font='700 44px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
-  ctx.textAlign='right';
-  ctx.fillText(`WARDROBE — SET ${idx+1}`,W-70,75);
-
-  ctx.fillStyle='#F4F1EA';
-  ctx.font='700 54px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
-  ctx.fillText('تصویر مرجع ست برای پرو',W-70,140);
-
-  const order={top:1,bottom:2,outer:3,shoe:4,accessory:5};
-  const sorted=[...items].sort((a,b)=>(order[a.category]||9)-(order[b.category]||9));
-  const display=sorted.slice(0,5);
-
-  const margin=60, gap=24;
-  const usable=W-margin*2;
-  const cardW=Math.floor((usable-gap*(display.length-1))/display.length);
-  const cardY=220, cardH=760;
-
-  for(let i=0;i<display.length;i++) {
-    const item=display[i];
-    const x=margin+i*(cardW+gap);
-
-    ctx.fillStyle='#1D1D20';
-    roundRect(ctx,x,cardY,cardW,cardH,24,true,false);
-
-    // image
-    const imgY=cardY+20, imgH=500;
-    ctx.fillStyle='#29292D';
-    roundRect(ctx,x+16,imgY,cardW-32,imgH,18,true,false);
-
-    if(item.photo){
-      try{
-        const bmp=await imageSourceToBitmap(item.photo);
-        const ratio=Math.min((cardW-32)/bmp.width, imgH/bmp.height);
-        const dw=bmp.width*ratio, dh=bmp.height*ratio;
-        ctx.drawImage(bmp, x+16+(cardW-32-dw)/2, imgY+(imgH-dh)/2, dw, dh);
-        bmp.close?.();
-      }catch(e){
-        ctx.fillStyle='#9B9B9B'; ctx.font='24px sans-serif'; ctx.textAlign='center';
-        ctx.fillText('بدون تصویر',x+cardW/2,imgY+imgH/2);
-      }
-    } else {
-      ctx.fillStyle='#9B9B9B'; ctx.font='24px sans-serif'; ctx.textAlign='center';
-      ctx.fillText('بدون تصویر',x+cardW/2,imgY+imgH/2);
-    }
-
-    // labels
-    ctx.textAlign='right';
-    ctx.fillStyle='#F4F1EA';
-    ctx.font='700 27px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
-    wrapTextCanvas(ctx,item.name||catFa(item.category),x+cardW-20,cardY+565,cardW-40,34,2);
-
-    ctx.fillStyle='#BDB9B0';
-    ctx.font='22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
-    const meta=[catFa(item.category), colorFa(item.color), item.fit||''].filter(Boolean).join(' • ');
-    wrapTextCanvas(ctx,meta,x+cardW-20,cardY+640,cardW-40,30,2);
-  }
-
-  // instructions/footer
-  ctx.textAlign='right';
-  ctx.fillStyle='#F4F1EA';
-  ctx.font='700 30px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
-  ctx.fillText('دستور پرو:',W-70,1060);
-
-  ctx.fillStyle='#C9C6BF';
-  ctx.font='24px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
-  const footer='همین ست را روی مانکن ثابت چت اجرا کن. مدل، رنگ و فرم لباس‌ها و کفش را تا حد ممکن حفظ کن و چهره و اندام مانکن را تغییر نده.';
-  wrapTextCanvas(ctx,footer,W-70,1110,W-140,34,4);
-
-  ctx.fillStyle='#777';
-  ctx.font='20px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
-  ctx.fillText('Generated by Wardrobe',W-70,1300);
-
-  const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('ساخت فایل تصویر ناموفق بود.')),'image/jpeg',0.92));
-  return blob;
-}
-
-function roundRect(ctx,x,y,w,h,r,fill,stroke){
-  if(w<2*r)r=w/2; if(h<2*r)r=h/2;
+function roundedRect(ctx,x,y,w,h,r){
   ctx.beginPath();
   ctx.moveTo(x+r,y);
   ctx.arcTo(x+w,y,x+w,y+h,r);
@@ -1461,95 +1351,129 @@ function roundRect(ctx,x,y,w,h,r,fill,stroke){
   ctx.arcTo(x,y+h,x,y,r);
   ctx.arcTo(x,y,x+w,y,r);
   ctx.closePath();
-  if(fill)ctx.fill();
-  if(stroke)ctx.stroke();
 }
-
-function makeTryonPrompt(items){
-  const names=items.map(i=>i.name||catFa(i.category)).join(' + ');
-  return `این تصویر، ست پیشنهادی اپ Wardrobe من است (${
-    names
-  }). همین ست را دقیقاً روی مانکن ثابت همین چت پرو کن. مدل، رنگ، فرم، فیت و جزئیات لباس‌ها و کفش را تا حد ممکن از روی تصویر حفظ کن. چهره، مو، اندام، نسبت‌های بدن، سن ظاهری، ژست و بک‌گراند مانکن ثابت را تغییر نده.`;
+function canvasWrap(ctx,text,x,y,maxWidth,lineHeight,maxLines=3){
+  const words=String(text||'').split(/\s+/);
+  const lines=[]; let line='';
+  for(const word of words){
+    const test=line?line+' '+word:word;
+    if(ctx.measureText(test).width>maxWidth && line){
+      lines.push(line); line=word;
+      if(lines.length>=maxLines-1)break;
+    } else line=test;
+  }
+  if(line && lines.length<maxLines)lines.push(line);
+  lines.forEach((ln,i)=>ctx.fillText(ln,x,y+i*lineHeight));
 }
+async function buildCompositeSet(items,idx){
+  const order={top:1,bottom:2,outer:3,shoe:4,accessory:5};
+  const list=[...items].sort((a,b)=>(order[a.category]||9)-(order[b.category]||9)).slice(0,5);
+  if(!list.length)throw new Error('ست انتخابی پیدا نشد.');
 
-async function prepareChatgptTryon(idx){
-  try{
-    const items=getTryonOutfitByIndex(idx);
-    if(!items.length) throw new Error('ست انتخابی پیدا نشد.');
-    chatgptTryonStatus('در حال ساخت تصویر واحد ست…','loading');
-    openChatgptTryonModal();
+  const canvas=document.createElement('canvas');
+  canvas.width=1200; canvas.height=1350;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#101012';ctx.fillRect(0,0,1200,1350);
 
-    if(preparedTryonUrl) URL.revokeObjectURL(preparedTryonUrl);
-    preparedTryonBlob=await buildSetCompositeImage(items,idx);
-    preparedTryonUrl=URL.createObjectURL(preparedTryonBlob);
-    preparedTryonPrompt=makeTryonPrompt(items);
+  ctx.textAlign='right';
+  ctx.fillStyle='#D9B56B';
+  ctx.font='700 42px Arial,sans-serif';
+  ctx.fillText(`WARDROBE — SET ${idx+1}`,1130,72);
+  ctx.fillStyle='#F5F2EB';
+  ctx.font='700 52px Arial,sans-serif';
+  ctx.fillText('ست مرجع برای پرو',1130,135);
 
-    const preview=document.getElementById('chatgptTryonPreview');
-    if(preview) preview.innerHTML=`<img src="${preparedTryonUrl}" alt="تصویر واحد ست">`;
+  const margin=50,gap=18;
+  const cardW=Math.floor((1100-gap*(list.length-1))/list.length);
+  const cardY=205,cardH=790;
 
-    try{
-      await navigator.clipboard.writeText(preparedTryonPrompt);
-      chatgptTryonStatus('تصویر ست آماده شد و متن پرو هم کپی شد.','success');
-    }catch{
-      chatgptTryonStatus('تصویر ست آماده شد. برای کپی متن از دکمه «کپی متن پرو» استفاده کن.','success');
+  for(let n=0;n<list.length;n++){
+    const item=list[n],x=margin+n*(cardW+gap);
+    ctx.fillStyle='#1C1C20'; roundedRect(ctx,x,cardY,cardW,cardH,22);ctx.fill();
+
+    const ix=x+14,iy=cardY+14,iw=cardW-28,ih=510;
+    ctx.fillStyle='#F1F0EC';roundedRect(ctx,ix,iy,iw,ih,16);ctx.fill();
+
+    if(item.photo){
+      try{
+        const img=await loadCanvasImage(item.photo);
+        const scale=Math.min(iw/img.naturalWidth,ih/img.naturalHeight);
+        const dw=img.naturalWidth*scale,dh=img.naturalHeight*scale;
+        ctx.drawImage(img,ix+(iw-dw)/2,iy+(ih-dh)/2,dw,dh);
+      }catch(_e){}
     }
+
+    ctx.fillStyle='#F5F2EB';ctx.font='700 25px Arial,sans-serif';ctx.textAlign='right';
+    canvasWrap(ctx,item.name||catFa(item.category),x+cardW-16,cardY+575,cardW-32,32,2);
+    ctx.fillStyle='#B7B3AB';ctx.font='21px Arial,sans-serif';
+    const meta=[catFa(item.category),colorFa(item.color),item.fit||''].filter(Boolean).join(' • ');
+    canvasWrap(ctx,meta,x+cardW-16,cardY+655,cardW-32,29,3);
+  }
+
+  ctx.fillStyle='#F5F2EB';ctx.font='700 28px Arial,sans-serif';ctx.textAlign='right';
+  ctx.fillText('دستور:',1130,1065);
+  ctx.fillStyle='#C4C0B8';ctx.font='23px Arial,sans-serif';
+  canvasWrap(ctx,'همین لباس‌ها و کفش را روی مانکن ثابت چت پرو کن؛ چهره و اندام مانکن را تغییر نده.',1130,1110,1060,34,4);
+
+  return await new Promise((resolve,reject)=>
+    canvas.toBlob(b=>b?resolve(b):reject(new Error('ساخت تصویر ست ناموفق بود.')),'image/jpeg',0.92)
+  );
+}
+function buildTryonPrompt(items){
+  const names=items.map(i=>i.name||catFa(i.category)).join(' + ');
+  return `این تصویر، ست پیشنهادی Wardrobe من است: ${names}. همین ست را روی مانکن ثابت همین چت پرو کن. مدل، رنگ، فرم، فیت و جزئیات لباس‌ها و کفش را تا حد ممکن دقیق حفظ کن. چهره، مو، اندام، نسبت‌های بدن، سن ظاهری و ظاهر کلی مانکن ثابت را تغییر نده.`;
+}
+async function prepareChatgptTryon(idx){
+  openChatgptTryonModal();
+  setTryonStatus('در حال ساخت تصویر واحد ست…','loading');
+  const preview=document.getElementById('chatgptTryonPreview');
+  if(preview)preview.innerHTML='<div class="chatgpt-tryon-empty">در حال ساخت تصویر…</div>';
+  try{
+    const items=getTryonOutfitItems(idx);
+    if(!items.length)throw new Error('ست انتخابی پیدا نشد.');
+    if(preparedTryonUrl)URL.revokeObjectURL(preparedTryonUrl);
+    preparedTryonBlob=await buildCompositeSet(items,idx);
+    preparedTryonUrl=URL.createObjectURL(preparedTryonBlob);
+    preparedTryonPrompt=buildTryonPrompt(items);
+    if(preview)preview.innerHTML=`<img src="${preparedTryonUrl}" alt="تصویر ست">`;
+    setTryonStatus('تصویر ست آماده است.','success');
   }catch(e){
     console.error(e);
-    chatgptTryonStatus(String(e?.message||e),'error');
+    setTryonStatus(String(e?.message||e),'error');
   }
 }
-
-async function copyPreparedTryonPrompt(){
-  if(!preparedTryonPrompt){
-    chatgptTryonStatus('اول یک ست را با دکمه «پرو در ChatGPT» آماده کن.','error');
-    return;
-  }
-  try{
-    await navigator.clipboard.writeText(preparedTryonPrompt);
-    chatgptTryonStatus('متن پرو کپی شد.','success');
-  }catch{
-    chatgptTryonStatus('مرورگر اجازه کپی خودکار نداد.','error');
-  }
-}
-
 function savePreparedSetImage(){
-  if(!preparedTryonBlob || !preparedTryonUrl){
-    chatgptTryonStatus('هنوز تصویر ست آماده نشده است.','error'); return;
-  }
+  if(!preparedTryonUrl)return setTryonStatus('اول تصویر ست را آماده کن.','error');
   const a=document.createElement('a');
   a.href=preparedTryonUrl;
-  a.download=`wardrobe-set-${new Date().toISOString().replace(/[:.]/g,'-')}.jpg`;
-  document.body.appendChild(a); a.click(); a.remove();
-  chatgptTryonStatus('فایل تصویر برای ذخیره آماده شد.','success');
+  a.download=`wardrobe-set-${Date.now()}.jpg`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTryonStatus('فایل برای ذخیره آماده شد.','success');
 }
-
 async function sharePreparedSetImage(){
-  if(!preparedTryonBlob){
-    chatgptTryonStatus('هنوز تصویر ست آماده نشده است.','error'); return;
-  }
+  if(!preparedTryonBlob)return setTryonStatus('اول تصویر ست را آماده کن.','error');
   const file=new File([preparedTryonBlob],`wardrobe-set-${Date.now()}.jpg`,{type:'image/jpeg'});
-  if(navigator.canShare?.({files:[file]}) && navigator.share){
-    try{
-      await navigator.share({
-        title:'Wardrobe Set',
-        text:preparedTryonPrompt,
-        files:[file]
-      });
-      chatgptTryonStatus('Share Sheet باز شد.','success');
-    }catch(e){
-      if(e?.name!=='AbortError') chatgptTryonStatus('Share انجام نشد.','error');
+  try{
+    if(navigator.share && navigator.canShare?.({files:[file]})){
+      await navigator.share({title:'Wardrobe Set',files:[file]});
+    } else {
+      savePreparedSetImage();
     }
-  } else {
-    savePreparedSetImage();
-    chatgptTryonStatus('این مرورگر Share فایل را پشتیبانی نکرد؛ فایل برای ذخیره آماده شد.','');
+  }catch(e){
+    if(e?.name!=='AbortError')setTryonStatus('Share انجام نشد.','error');
   }
 }
-
+async function copyPreparedTryonPrompt(){
+  if(!preparedTryonPrompt)return setTryonStatus('اول ست را آماده کن.','error');
+  try{
+    await navigator.clipboard.writeText(preparedTryonPrompt);
+    setTryonStatus('متن پرو کپی شد.','success');
+  }catch(_e){
+    setTryonStatus('کپی خودکار توسط مرورگر مسدود شد.','error');
+  }
+}
 function openDedicatedTryonChat(){
-  if(preparedTryonPrompt){
-    navigator.clipboard?.writeText(preparedTryonPrompt).catch(()=>{});
-  }
-  window.open(DEDICATED_TRYON_CHAT_URL,'_blank','noopener,noreferrer');
+  if(preparedTryonPrompt)navigator.clipboard?.writeText(preparedTryonPrompt).catch(()=>{});
+  window.location.href=DEDICATED_TRYON_CHAT_URL;
 }
-
 
