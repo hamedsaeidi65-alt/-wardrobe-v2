@@ -92,3 +92,6 @@ V3.5 — Context-Aware Color Strategy Engine
 - کفش متضاد به‌صورت خودکار امتیاز مثبت یا منفی نمی‌گیرد؛ نقش آن در کل ترکیب سنجیده می‌شود.
 - نمونه: مشکی + جین متوسط + کفش سفید می‌تواند به دلیل تعادل بصری بهتر امتیاز بالاتری بگیرد.
 - نمونه: سفید + سفید + کفش مشکی می‌تواند به‌عنوان نقطه تأکیدی عمدی، ترکیب موفقی باشد.
+
+
+V3.6: Fixed mannequin embedded in Profile + try-on UI foundation. Mannequin reference is locked; only outfit items are intended to change.

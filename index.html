@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#111111"/>
   <title>Wardrobe V2</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=350"/>
+  <link rel="stylesheet" href="style.css?v=360"/>
 </head>
 <body>
   <header class="topbar">
     <div>
-      <div class="eyebrow">WARDROBE V3.5</div>
+      <div class="eyebrow">WARDROBE V3.6</div>
       <h1>استایل شخصی من</h1>
     </div>
     <button class="icon-btn" id="installBtn" hidden>＋ نصب</button>
@@ -220,12 +220,29 @@
         <div class="profile-mark">W</div>
         <h3>استایل شخصی</h3>
         <p>تنظیمات شخصی‌سازی استایل، سایزها، برندهای موردعلاقه و ترجیحات پوشش در نسخه‌های بعدی اینجا قرار می‌گیرند.</p>
-        <div class="profile-row"><span>نسخه اپ</span><strong>3.5</strong></div>
+        <div class="mannequin-profile">
+          <div class="mannequin-title"><strong>مانکن ثابت من</strong><span class="mannequin-lock">🔒 ثابت</span></div>
+          <img src="mannequin-fixed.jpeg" alt="مانکن ثابت" class="mannequin-profile-img">
+          <div class="mannequin-specs">
+            <span>مرد</span><span>۴۰ سال</span><span>قد ۱۸۲ cm</span><span>وزن ۹۰ kg</span>
+          </div>
+          <p class="mini-note">چهره، مو، اندام و نسبت‌های بدن این مانکن مرجع ثابت پرو مجازی هستند و فقط لباس، کفش و اکسسوری تغییر می‌کنند.</p>
+          <button class="secondary mannequin-preview-btn" type="button" onclick="openMannequinPreview()">نمایش تمام‌قد مانکن</button>
+        </div>
+        <div class="profile-row"><span>نسخه اپ</span><strong>3.6</strong></div>
         <div class="profile-row"><span>ذخیره اطلاعات</span><strong>روی همین گوشی</strong></div>
       </div>
     </section>
 
   </main>
+
+  <div id="mannequinModal" class="mannequin-modal" onclick="closeMannequinPreview(event)">
+    <div class="mannequin-modal-card">
+      <button class="mannequin-close" onclick="closeMannequinPreview(event,true)">×</button>
+      <img src="mannequin-fixed.jpeg" alt="مانکن ثابت تمام‌قد">
+      <div class="mannequin-modal-info"><strong>مانکن ثابت</strong><span>۱۸۲ cm • ۹۰ kg • ۴۰ سال • مرد</span></div>
+    </div>
+  </div>
 
   <nav class="bottom-nav">
     <button onclick="goPage('home')" data-page="home" class="active">خانه</button>
@@ -242,6 +259,6 @@
     });
   }
   </script>
-  <script src="app.js?v=350"></script>
+  <script src="app.js?v=360"></script>
 </body>
 </html>

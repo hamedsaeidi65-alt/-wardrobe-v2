@@ -389,7 +389,10 @@ function generateOutfit(){
 
       <div class="v31-why"><strong>چرا این رتبه؟</strong><br>${v31Why(c,unique[idx+1])}</div>${v321AllAuditCard(c)}${v33ImproveCard(c,occasion,weather)}
       <div class="outfit-items">${c.items.map(itemCard).join('')}</div>
-      <button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button>
+      <div class="outfit-actions-v36">
+        <button class="secondary" onclick="previewOutfitOnMannequin(${idx})">پرو روی مانکن</button>
+        <button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1304,3 +1307,25 @@ v31Evaluate = function(items,occasion,weather){
   r.reasons=[`استراتژی رنگی: ${c.strategy}`,...(r.reasons||[])];
   return r;
 };
+
+
+// ===== V3.6 — Fixed Mannequin UI =====
+function openMannequinPreview(){
+  document.getElementById('mannequinModal')?.classList.add('show');
+}
+function closeMannequinPreview(e,force=false){
+  const modal=document.getElementById('mannequinModal');
+  if(force || e?.target===modal) modal?.classList.remove('show');
+}
+function previewOutfitOnMannequin(idx){
+  const outfit=window.currentSuggestedOutfits?.[idx];
+  if(!outfit) return;
+  const items=loadItems();
+  const selected=outfit.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);
+  window.v36PendingTryOn={outfit,items:selected,mannequin:'mannequin-fixed.jpeg'};
+  const modal=document.getElementById('mannequinModal');
+  if(!modal) return;
+  modal.classList.add('show');
+  const info=modal.querySelector('.mannequin-modal-info');
+  if(info) info.innerHTML=`<strong>مانکن ثابت — آماده پرو</strong><span>${selected.map(i=>i.name||catFa(i.category)).join(' + ')}</span><small>مرجع مانکن قفل است؛ در اتصال VTON فقط لباس‌ها تغییر می‌کنند.</small>`;
+}
