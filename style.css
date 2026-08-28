@@ -144,3 +144,9 @@ legend{padding:0 6px;color:#d9d6cf;font-size:14px}
 .audit-lines div+div{margin-top:4px}
 
 .audit-lines div:last-child{font-weight:800;color:var(--text);margin-top:8px}
+
+.v33-improve{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--card2);font-size:12px;line-height:1.9}
+.v33-improve>strong{display:block;margin-bottom:6px;color:var(--text)}
+.v33-tip{padding:7px 0;border-top:1px solid var(--line)}
+.v33-tip span{display:block;color:var(--muted)}
+.v33-improve small{display:block;margin-top:7px;color:var(--muted)}

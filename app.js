@@ -277,9 +277,9 @@ function compareFashionRank(a,b){
 }
 function rankingExplanation(c,next){
  const t=c.tie;
- let parts=[`هارمونی بصری ${t.harmony}/100`,`کفش/شلوار ${t.shoeTrouser}/100`,`Color Echo ${t.echo}/100`,`سیلوئت ${t.silhouette}/100`];
+ let parts=[`هارمونی بصری ${t.harmony}/100`,`کفش/شلوار ${t.shoeTrouser}/100`,`تکرار هوشمند رنگ ${t.echo}/100`,`فرم کلی لباس ${t.silhouette}/100`];
  if(next&&c.total===next.total){
-   const keys=[['harmony','هارمونی بصری'],['shoeTrouser','تناسب کفش و شلوار'],['echo','Color Echo'],['silhouette','سیلوئت']];
+   const keys=[['harmony','هارمونی بصری'],['shoeTrouser','تناسب کفش و شلوار'],['echo','تکرار هوشمند رنگ'],['silhouette','فرم کلی لباس']];
    const win=keys.find(([k])=>(c.tie[k]||0)!==(next.tie[k]||0));
    if(win)parts.push(`رتبه بالاتر به‌دلیل ${win[1]}`);
  }
@@ -376,16 +376,16 @@ function generateOutfit(){
 
       <div class="v31-breakdown">
         <span>رنگ ${b.color}/25</span>
-        <span>سیلوئت ${b.silhouette}/20</span>
+        <span>فرم کلی لباس ${b.silhouette}/20</span>
         <span>موقعیت ${b.occasion}/15</span>
         <span>هوا ${b.season}/15</span>
         <span>کفش/شلوار ${b.shoeTrouser}/10</span>
         <span>رسمیت ${b.formality}/5</span>
-        <span>Color Echo ${b.echo}/5</span>
+        <span>تکرار هوشمند رنگ ${b.echo}/5</span>
         <span>تعادل بصری ${b.visual}/5</span>
       </div>
 
-      <div class="v31-why"><strong>چرا این رتبه؟</strong><br>${v31Why(c,unique[idx+1])}</div>${v321AllAuditCard(c)}
+      <div class="v31-why"><strong>چرا این رتبه؟</strong><br>${v31Why(c,unique[idx+1])}</div>${v321AllAuditCard(c)}${v33ImproveCard(c,occasion,weather)}
       <div class="outfit-items">${c.items.map(itemCard).join('')}</div>
       <button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button>
     </div>`;
@@ -531,12 +531,12 @@ function v31Color(items){
 }
 
 function v31Silhouette(top,bottom,occasion){
-  if(!top||!bottom) return {score:13,reasons:['اطلاعات سیلوئت کامل نیست']};
+  if(!top||!bottom) return {score:13,reasons:['اطلاعات فرم کلی لباس کامل نیست']};
   const a=String(top.fit||'Regular').toLowerCase();
   const b=String(bottom.fit||'Regular').toLowerCase();
   let score=15, reasons=[];
   if(v31Loose(a)!==v31Loose(b)){
-    score=17; reasons.push('تفاوت کنترل‌شده حجم بالا و پایین، سیلوئت متعادلی ساخته');
+    score=17; reasons.push('تفاوت کنترل‌شده حجم بالا و پایین، فرم کلی لباس متعادلی ساخته');
   }else if(v31Loose(a)&&v31Loose(b)){
     score=occasion==='sport'?18:14;
     reasons.push(occasion==='sport'?'حجم آزاد با استایل اسپرت/استریت سازگار است':'حجم زیاد در هر دو بخش کمی از تعادل کم کرده');
@@ -604,7 +604,7 @@ function v31Formality(items,occasion){
 
 function v31Echo(items){
   const colors=items.map(i=>i.color).filter(Boolean);
-  let score=2,reason='Color Echo کم است؛ انسجام بیشتر از کنتراست می‌آید';
+  let score=2,reason='تکرار هوشمند رنگ کم است؛ انسجام بیشتر از کنتراست می‌آید';
   for(let i=0;i<colors.length;i++)for(let j=i+1;j<colors.length;j++){
     if(colors[i]===colors[j]){ score=5; reason='تکرار مستقیم یک رنگ بین اجزا انسجام ساخته'; }
     else if(score<4 && v31Family(colors[i])===v31Family(colors[j])){
@@ -693,7 +693,7 @@ function v31Why(current,next){
     if(gap>0) return `${core}؛ در مجموع ${gap} امتیاز بالاتر از گزینه بعدی`;
     const keys=[
       ['color','هماهنگی رنگ'],['shoeTrouser','تناسب کفش و شلوار'],['visual','تعادل بصری'],
-      ['silhouette','سیلوئت'],['echo','Color Echo'],['formality','رسمیت']
+      ['silhouette','فرم کلی لباس'],['echo','تکرار هوشمند رنگ'],['formality','رسمیت']
     ];
     const win=keys.find(([k])=>(current.breakdown[k]||0)>(next.breakdown[k]||0));
     if(win) return `${core}؛ در امتیاز مساوی، ${win[1]} عامل رتبه بالاتر است`;
@@ -888,7 +888,7 @@ function v32WhyCard(result){
 }
 
 
-// ===== V3.2.1: category-aware thermal logic + all 8 auditable criteria =====
+// ===== V3.3: category-aware thermal logic + all 8 auditable criteria =====
 function v321PenaltyAudit(maxScore, penalties, positives=[]){
   const totalPenalty = penalties.reduce((s,p)=>s+Math.max(0,p.points||0),0);
   const score = Math.max(0, maxScore-totalPenalty);
@@ -958,7 +958,7 @@ v31Evaluate = function(items,occasion,weather){
   r.audit=r.audit||{};
   r.audit.color=v321SimpleAudit('رنگ',25,r.breakdown.color,
     r.breakdown.color===25?'خانواده‌های رنگی و کنتراست ست هماهنگ‌اند':'هماهنگی رنگی به امتیاز کامل نرسیده است');
-  r.audit.silhouette=v321SimpleAudit('سیلوئت',20,r.breakdown.silhouette,
+  r.audit.silhouette=v321SimpleAudit('فرم کلی لباس',20,r.breakdown.silhouette,
     r.breakdown.silhouette===20?'تناسب حجم و فرم بالاتنه، پایین‌تنه و کفش متعادل است':'تناسب فرم و حجم اجزای ست کامل نیست');
   r.audit.occasion=v321SimpleAudit('موقعیت',15,r.breakdown.occasion,
     r.breakdown.occasion===15?'سطح استایل اجزا با موقعیت انتخابی کاملاً هماهنگ است':'بعضی اجزا با موقعیت انتخابی فاصله دارند');
@@ -967,7 +967,7 @@ v31Evaluate = function(items,occasion,weather){
     r.breakdown.shoeTrouser===10?'حجم، فرم و ارتباط کفش با شلوار مناسب است':'رابطه فرم/حجم کفش و شلوار به امتیاز کامل نرسیده است');
   r.audit.formality=v321SimpleAudit('رسمیت',5,r.breakdown.formality,
     r.breakdown.formality===5?'سطح رسمیت ست با موقعیت هماهنگ است':'سطح رسمیت کمی با موقعیت فاصله دارد');
-  r.audit.echo=v321SimpleAudit('Color Echo',5,r.breakdown.echo,
+  r.audit.echo=v321SimpleAudit('تکرار هوشمند رنگ',5,r.breakdown.echo,
     r.breakdown.echo===5?'یک رنگ یا خانواده رنگی به‌صورت کنترل‌شده در ست تکرار شده است':'تکرار رنگی بین اجزا ضعیف‌تر است');
   r.audit.visual=v321SimpleAudit('تعادل بصری',5,r.breakdown.visual,
     r.breakdown.visual===5?'وزن بصری روشن/تیره و توزیع رنگ متعادل است':'توزیع وزن بصری ست کاملاً متعادل نیست');
@@ -976,8 +976,8 @@ v31Evaluate = function(items,occasion,weather){
 function v321AllAuditCard(result){
  const a=result.audit||{};
  const defs=[
-  ['رنگ',a.color,25],['سیلوئت',a.silhouette,20],['موقعیت',a.occasion,15],['هوا',a.weather,15],
-  ['کفش/شلوار',a.shoeTrouser,10],['رسمیت',a.formality,5],['Color Echo',a.echo,5],['تعادل بصری',a.visual,5]
+  ['رنگ',a.color,25],['فرم کلی لباس',a.silhouette,20],['موقعیت',a.occasion,15],['هوا',a.weather,15],
+  ['کفش/شلوار',a.shoeTrouser,10],['رسمیت',a.formality,5],['تکرار هوشمند رنگ',a.echo,5],['تعادل بصری',a.visual,5]
  ];
  return defs.filter(x=>x[1]).map(([title,o,max])=>`
   <details class="audit-detail">
@@ -994,3 +994,60 @@ function v321ToggleThermalFields(){
 }
 document.getElementById('category')?.addEventListener('change',v321ToggleThermalFields);
 setTimeout(v321ToggleThermalFields,0);
+
+
+// ===== V3.3 — «چطور این ست بهتر می‌شود؟» =====
+function v33ColorName(c){
+ const m={black:'مشکی',white:'سفید',charcoal:'زغالی',navy:'سرمه‌ای',denim_blue:'جین آبی',blue:'آبی',
+ light_blue:'آبی روشن',gray:'طوسی',gray_light:'طوسی روشن',cream:'کرم',beige:'بژ',camel:'شتری',
+ brown:'قهوه‌ای',olive:'زیتونی',jade:'یشمی',burgundy:'زرشکی'};
+ return m[c]||c||'نامشخص';
+}
+function v33CloneWithColor(item,color){return {...item,color};}
+function v33ImprovementIdeas(combo,occasion,weather){
+ const base=combo.score;
+ const items=combo.items;
+ const categories=['top','bottom','shoe'];
+ const palette=['black','white','charcoal','navy','denim_blue','light_blue','gray_light','cream','beige','camel','brown','olive','burgundy'];
+ const candidates=[];
+ for(const cat of categories){
+   const original=items.find(i=>i.category===cat);
+   if(!original) continue;
+   for(const color of palette){
+     if(color===original.color) continue;
+     const testItems=items.map(i=>i===original?v33CloneWithColor(i,color):i);
+     const r=v31Evaluate(testItems,occasion,weather);
+     if(r.hardFail) continue;
+     const gain=r.score-base;
+     if(gain>0){
+       candidates.push({cat,from:original.color,to:color,gain,score:r.score,breakdown:r.breakdown});
+     }
+   }
+ }
+ candidates.sort((a,b)=>b.gain-a.gain || b.score-a.score);
+ const chosen=[],used=new Set();
+ for(const c of candidates){
+   const key=c.cat+':'+c.to;
+   if(used.has(key))continue;
+   used.add(key);chosen.push(c);
+   if(chosen.length===3)break;
+ }
+ return chosen;
+}
+function v33CatFa(c){return ({top:'بالاتنه',bottom:'پایین‌تنه',shoe:'کفش'})[c]||c}
+function v33ImproveCard(combo,occasion,weather){
+ const ideas=v33ImprovementIdeas(combo,occasion,weather);
+ if(combo.score>=99){
+   return `<div class="v33-improve"><strong>چطور این ست بهتر می‌شود؟</strong><div>این ست از نظر اطلاعات ثبت‌شده تقریباً به سقف امتیاز رسیده است.</div></div>`;
+ }
+ if(!ideas.length){
+   return `<div class="v33-improve"><strong>چطور این ست بهتر می‌شود؟</strong><div>با تغییر رنگ ساده در سه جزء اصلی، گزینه‌ای با امتیاز بالاتر پیدا نشد؛ بهبود بعدی احتمالاً به فرم، جنس، کفش یا لایه‌بندی مربوط است.</div></div>`;
+ }
+ return `<div class="v33-improve"><strong>چطور این ست بهتر می‌شود؟</strong>
+ ${ideas.map(x=>`<div class="v33-tip">
+   <b>${v33CatFa(x.cat)}:</b> ${v33ColorName(x.from)} ← ${v33ColorName(x.to)}
+   <span>امتیاز پیش‌بینی‌شده: ${x.score}/100 (${x.gain}+)</span>
+ </div>`).join('')}
+ <small>این پیشنهادها با ثابت نگه‌داشتن سایر مشخصات لباس و تغییر فقط رنگ محاسبه شده‌اند.</small>
+ </div>`;
+}
