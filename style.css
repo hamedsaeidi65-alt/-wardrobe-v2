@@ -210,3 +210,19 @@ body{padding-bottom:calc(88px + env(safe-area-inset-bottom));}
   .bottom-nav{min-height:70px;padding-left:6px;padding-right:6px}
   .bottom-nav .nav-btn{font-size:13px}
 }
+
+/* ===== V3.8.2 — Navigation functional fix ===== */
+.bottom-nav > button{
+  appearance:none;
+  border:0;
+  background:transparent;
+  color:var(--muted);
+  min-height:54px;
+  border-radius:14px;
+  font:inherit;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+}
+.bottom-nav > button.active{color:var(--gold);}
+.bottom-nav > button:active{background:var(--card2);}
