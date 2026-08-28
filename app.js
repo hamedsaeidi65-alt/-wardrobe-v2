@@ -155,11 +155,15 @@ function removeItem(id){if(confirm('این لباس حذف شود؟')) saveItems
 
 function renderHome(){
  const items=loadItems();
- document.getElementById('countTops').textContent=items.filter(x=>x.category==='top').length;
- document.getElementById('countBottoms').textContent=items.filter(x=>x.category==='bottom').length;
- document.getElementById('countShoes').textContent=items.filter(x=>x.category==='shoe').length;
+ const setText=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val};
+ setText('countTops',items.filter(x=>x.category==='top').length);
+ setText('countBottoms',items.filter(x=>x.category==='bottom').length);
+ setText('countShoes',items.filter(x=>x.category==='shoe').length);
+ setText('countAll',items.length);
  const recent=items.slice(-4).reverse();
- document.getElementById('recentItems').innerHTML=recent.length?recent.map(itemCard).join(''):`<div class="empty">هنوز لباسی ثبت نشده.</div>`;
+ const recentEl=document.getElementById('recentItems');
+ if(recentEl) recentEl.innerHTML=recent.length?recent.map(itemCard).join(''):`<div class="empty">هنوز لباسی ثبت نشده.</div>`;
+ if(typeof updateCinematicHome==='function') updateCinematicHome();
 }
 function renderWardrobe(){
  let items=loadItems();
@@ -1592,16 +1596,16 @@ function handleSavedTryonImage(event){
     saveSavedOutfitsSafe(saved);
     pendingSavedOutfitIndex=null;
     event.target.value='';
-    if(typeof renderSaved==='function') renderSaved();
+    if(typeof renderSavedOutfits==='function') renderSavedOutfits();
     updateCinematicHome();
   };
   reader.readAsDataURL(file);
 }
 
 // decorate saved-outfit rendering after original renderSaved
-const _renderSavedV39 = typeof renderSaved==='function' ? renderSaved : null;
+const _renderSavedV39 = typeof renderSavedOutfits==='function' ? renderSavedOutfits : null;
 if(_renderSavedV39){
-  window.renderSaved = function(){
+  window.renderSavedOutfits = function(){
     const result=_renderSavedV39();
     setTimeout(()=>{
       const cards=document.querySelectorAll('#saved .saved-card, #saved .outfit-card, #saved .card');
@@ -1635,7 +1639,7 @@ if(_goPageV39){
   window.goPage = function(page,btn){
     const r=_goPageV39(page,btn);
     if(page==='home') updateCinematicHome();
-    if(page==='saved' && typeof renderSaved==='function') renderSaved();
+    if(page==='saved' && typeof renderSavedOutfits==='function') renderSavedOutfits();
     return r;
   };
 }
