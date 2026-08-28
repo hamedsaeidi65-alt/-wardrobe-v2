@@ -1435,6 +1435,7 @@ async function prepareChatgptTryon(idx){
     preparedTryonBlob=await buildCompositeSet(items,idx);
     preparedTryonUrl=URL.createObjectURL(preparedTryonBlob);
     preparedTryonPrompt=buildTryonPrompt(items);
+    const promptBox=document.getElementById('preparedTryonPromptText'); if(promptBox) promptBox.value=preparedTryonPrompt;
     if(preview)preview.innerHTML=`<img src="${preparedTryonUrl}" alt="تصویر ست">`;
     setTryonStatus('تصویر ست آماده است.','success');
   }catch(e){
@@ -1464,16 +1465,59 @@ async function sharePreparedSetImage(){
   }
 }
 async function copyPreparedTryonPrompt(){
-  if(!preparedTryonPrompt)return setTryonStatus('اول ست را آماده کن.','error');
-  try{
-    await navigator.clipboard.writeText(preparedTryonPrompt);
-    setTryonStatus('متن پرو کپی شد.','success');
-  }catch(_e){
-    setTryonStatus('کپی خودکار توسط مرورگر مسدود شد.','error');
+  const text = preparedTryonPrompt || document.getElementById('preparedTryonPromptText')?.value || '';
+  if(!text){
+    setTryonStatus('اول ست را آماده کن.','error');
+    return false;
   }
+
+  // Keep a visible copy in the textarea so the user can verify it exists.
+  const ta=document.getElementById('preparedTryonPromptText');
+  if(ta) ta.value=text;
+
+  // Modern Clipboard API first.
+  try{
+    if(navigator.clipboard?.writeText){
+      await navigator.clipboard.writeText(text);
+      setTryonStatus('متن پرو کپی شد. داخل ChatGPT فقط Paste کن.','success');
+      return true;
+    }
+  }catch(_e){}
+
+  // iOS/Safari fallback: select a real textarea and execCommand('copy').
+  try{
+    let temp=ta;
+    let created=false;
+    if(!temp){
+      temp=document.createElement('textarea');
+      temp.value=text;
+      temp.setAttribute('readonly','');
+      temp.style.position='fixed';
+      temp.style.opacity='0';
+      temp.style.left='-9999px';
+      document.body.appendChild(temp);
+      created=true;
+    }
+    temp.removeAttribute('readonly');
+    temp.focus();
+    temp.select();
+    temp.setSelectionRange(0, temp.value.length);
+    const ok=document.execCommand('copy');
+    temp.setAttribute('readonly','');
+    if(created) temp.remove();
+
+    if(ok){
+      setTryonStatus('متن پرو کپی شد. داخل ChatGPT فقط Paste کن.','success');
+      return true;
+    }
+  }catch(_e){}
+
+  setTryonStatus('iOS اجازه کپی خودکار نداد. متن پایین نمایش داده شده؛ روی آن نگه دار و Copy بزن.','error');
+  return false;
 }
-function openDedicatedTryonChat(){
-  if(preparedTryonPrompt)navigator.clipboard?.writeText(preparedTryonPrompt).catch(()=>{});
+async function openDedicatedTryonChat(){
+  const ok=await copyPreparedTryonPrompt();
+  // Open even if copying is blocked; prompt remains visible in the modal.
   window.location.href=DEDICATED_TRYON_CHAT_URL;
 }
 

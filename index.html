@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#111111"/>
   <title>Wardrobe V2</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=383"/>
+  <link rel="stylesheet" href="style.css?v=384"/>
 </head>
 <body>
   <header class="topbar">
     <div>
-      <div class="eyebrow">WARDROBE V3.8.3</div>
+      <div class="eyebrow">WARDROBE V3.8.4</div>
       <h1>استایل شخصی من</h1>
     </div>
     <button class="icon-btn" id="installBtn" hidden>＋ نصب</button>
@@ -221,7 +221,7 @@
         <div class="profile-mark">W</div>
         <h3>استایل شخصی</h3>
         <p>تنظیمات شخصی‌سازی استایل، سایزها، برندهای موردعلاقه و ترجیحات پوشش در نسخه‌های بعدی اینجا قرار می‌گیرند.</p>
-        <div class="profile-row"><span>نسخه اپ</span><strong>3.8.3</strong></div>
+        <div class="profile-row"><span>نسخه اپ</span><strong>3.8.4</strong></div>
         <div class="profile-row"><span>ذخیره اطلاعات</span><strong>روی همین گوشی</strong></div>
       </div>
     </section>
@@ -245,7 +245,10 @@
         <button type="button" class="secondary" onclick="copyPreparedTryonPrompt()">کپی متن پرو</button>
         <button type="button" class="primary" onclick="openDedicatedTryonChat()">باز کردن چت پرو</button>
       </div>
-      <div id="chatgptTryonStatus" class="chatgpt-tryon-status"></div>
+      <label class="chatgpt-prompt-label">متن آماده پرو
+          <textarea id="preparedTryonPromptText" class="chatgpt-prompt-text" readonly></textarea>
+        </label>
+        <div id="chatgptTryonStatus" class="chatgpt-tryon-status"></div>
       <div class="chatgpt-tryon-help">در چت پرو، تصویر ست را ضمیمه کن، متن را Paste کن و Send بزن.</div>
     </div>
   </div>
@@ -266,6 +269,6 @@
     });
   }
   </script>
-<script src="app.js?v=383"></script>
+<script src="app.js?v=384"></script>
 </body>
 </html>

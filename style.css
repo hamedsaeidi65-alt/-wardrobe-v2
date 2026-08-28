@@ -215,3 +215,6 @@ legend{padding:0 6px;color:#d9d6cf;font-size:14px}
 .chatgpt-tryon-status.loading{color:var(--gold)}
 .chatgpt-tryon-status.success{color:#91c99d}
 .chatgpt-tryon-status.error{color:var(--danger)}
+
+.chatgpt-prompt-label{display:block;margin-top:12px;color:var(--muted);font-size:12px}
+.chatgpt-prompt-text{width:100%;min-height:110px;margin-top:7px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card2);color:var(--text);font:inherit;font-size:12px;line-height:1.8;resize:vertical;direction:rtl}
