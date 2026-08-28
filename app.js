@@ -1521,3 +1521,123 @@ async function openDedicatedTryonChat(){
   window.location.href=DEDICATED_TRYON_CHAT_URL;
 }
 
+
+
+
+// ===== V3.9 — Cinematic UI + Try-On Image Attachments =====
+let pendingSavedOutfitIndex = null;
+
+function loadSavedOutfitsSafe(){
+  try { return JSON.parse(localStorage.getItem(SAVED_KEY) || '[]'); }
+  catch { return []; }
+}
+function saveSavedOutfitsSafe(arr){
+  localStorage.setItem(SAVED_KEY, JSON.stringify(arr));
+}
+function updateCinematicHome(){
+  const items = loadItems();
+  const saved = loadSavedOutfitsSafe();
+
+  const all=document.getElementById('countAll');
+  const s=document.getElementById('countSaved');
+  const fav=document.getElementById('countFav');
+  const rec=document.getElementById('countRecent');
+
+  if(all) all.textContent=items.length;
+  if(s) s.textContent=saved.length;
+  if(fav) fav.textContent=items.filter(i=>i.favorite).length;
+  if(rec) rec.textContent=Math.min(items.length,8);
+
+  const wrap=document.getElementById('homeFeaturedLooks');
+  if(wrap){
+    const display=saved.slice(0,6);
+    wrap.innerHTML=display.length ? display.map((o,i)=>{
+      const cover=o.tryonImage || o.coverImage || '';
+      const score=o.score || o.styleScore || '';
+      const title=o.name || `ست ${i+1}`;
+      if(cover){
+        return `<article class="look-card has-cover" onclick="goPage('saved')">
+          <img src="${cover}" alt="${title}">
+          <div class="look-card-overlay">
+            <div><strong>${title}</strong>${score?`<span>${score}/100</span>`:''}</div>
+          </div>
+        </article>`;
+      }
+      const ids=o.itemIds||[];
+      const allItems=loadItems();
+      const pics=ids.map(id=>allItems.find(x=>x.id===id)?.photo).filter(Boolean).slice(0,3);
+      return `<article class="look-card" onclick="goPage('saved')">
+        <div class="look-collage">${pics.map(p=>`<img src="${p}" alt="">`).join('')}</div>
+        <div class="look-card-overlay">
+          <div><strong>${title}</strong>${score?`<span>${score}/100</span>`:''}</div>
+        </div>
+      </article>`;
+    }).join('') : '<div class="empty-featured">هنوز ست ذخیره‌شده‌ای نداری.</div>';
+  }
+}
+
+function addTryonImageToSaved(index){
+  pendingSavedOutfitIndex=index;
+  document.getElementById('savedTryonInput')?.click();
+}
+
+function handleSavedTryonImage(event){
+  const file=event.target.files?.[0];
+  if(!file || pendingSavedOutfitIndex===null) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    const saved=loadSavedOutfitsSafe();
+    if(!saved[pendingSavedOutfitIndex]) return;
+    saved[pendingSavedOutfitIndex].tryonImage=reader.result;
+    saveSavedOutfitsSafe(saved);
+    pendingSavedOutfitIndex=null;
+    event.target.value='';
+    if(typeof renderSaved==='function') renderSaved();
+    updateCinematicHome();
+  };
+  reader.readAsDataURL(file);
+}
+
+// decorate saved-outfit rendering after original renderSaved
+const _renderSavedV39 = typeof renderSaved==='function' ? renderSaved : null;
+if(_renderSavedV39){
+  window.renderSaved = function(){
+    const result=_renderSavedV39();
+    setTimeout(()=>{
+      const cards=document.querySelectorAll('#saved .saved-card, #saved .outfit-card, #saved .card');
+      const saved=loadSavedOutfitsSafe();
+      cards.forEach((card,i)=>{
+        if(i>=saved.length) return;
+        card.classList.add('cinematic-saved-card');
+        if(!card.querySelector('.tryon-actions')){
+          const box=document.createElement('div');
+          box.className='tryon-actions';
+          const has=!!saved[i].tryonImage;
+          box.innerHTML=`<button type="button" class="secondary" onclick="event.stopPropagation();addTryonImageToSaved(${i})">${has?'تغییر تصویر پرو':'افزودن تصویر پرو'}</button>`;
+          card.appendChild(box);
+        }
+        if(saved[i].tryonImage && !card.querySelector('.tryon-cover')){
+          const img=document.createElement('img');
+          img.src=saved[i].tryonImage;
+          img.className='tryon-cover';
+          img.alt='تصویر پرو ست';
+          card.prepend(img);
+        }
+      });
+    },0);
+    updateCinematicHome();
+    return result;
+  };
+}
+
+const _goPageV39 = typeof goPage==='function' ? goPage : null;
+if(_goPageV39){
+  window.goPage = function(page,btn){
+    const r=_goPageV39(page,btn);
+    if(page==='home') updateCinematicHome();
+    if(page==='saved' && typeof renderSaved==='function') renderSaved();
+    return r;
+  };
+}
+window.addEventListener('load',()=>setTimeout(updateCinematicHome,150));
+

@@ -6,40 +6,52 @@
   <meta name="theme-color" content="#111111"/>
   <title>Wardrobe V2</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=384"/>
+  <link rel="stylesheet" href="style.css?v=390"/>
 </head>
 <body>
   <header class="topbar">
     <div>
-      <div class="eyebrow">WARDROBE V3.8.4</div>
+      <div class="eyebrow">WARDROBE V3.9</div>
       <h1>استایل شخصی من</h1>
     </div>
     <button class="icon-btn" id="installBtn" hidden>＋ نصب</button>
   </header>
 
   <main>
-    <section id="home" class="page active">
-      <div class="hero card">
-        <div>
-          <span class="badge">TODAY</span>
-          <h2>امروز چی بپوشم؟</h2>
-          <p>از لباس‌های داخل کمدت، بهترین ترکیب را بر اساس هماهنگی رنگ، فیت، فصل و موقعیت انتخاب کن.</p>
-          <button class="primary" onclick="goPage('outfit')">پیشنهاد ست</button>
-        </div>
-      </div>
+    
+<section id="home" class="page active cinematic-home">
+  <div class="cinematic-hero">
+    <div class="cinematic-hero-overlay"></div>
+    <div class="cinematic-hero-content">
+      <div class="eyebrow">WARDROBE V3.9</div>
+      <h1>استایل تو، امضای تو</h1>
+      <p>از لباس‌های کمدت، بهترین ترکیب را بر اساس رنگ، فرم، موقعیت و سلیقه‌ات پیدا کن.</p>
+      <button class="hero-cta" onclick="goPage('outfit')">پیشنهاد امروز ✨</button>
+    </div>
+  </div>
 
-      <div class="stats">
-        <div class="stat card"><strong id="countTops">0</strong><span>بالاتنه</span></div>
-        <div class="stat card"><strong id="countBottoms">0</strong><span>پایین‌تنه</span></div>
-        <div class="stat card"><strong id="countShoes">0</strong><span>کفش</span></div>
-      </div>
+  <div class="cinematic-stats">
+    <div class="cin-stat"><strong id="countAll">0</strong><span>لباس در کمد</span></div>
+    <div class="cin-stat"><strong id="countSaved">0</strong><span>ست‌های من</span></div>
+    <div class="cin-stat"><strong id="countFav">0</strong><span>علاقه‌مندی</span></div>
+    <div class="cin-stat"><strong id="countRecent">0</strong><span>اخیر</span></div>
+  </div>
 
-      <div class="section-head">
-        <h3>آخرین لباس‌ها</h3>
-        <button class="text-btn" onclick="goPage('wardrobe')">مشاهده همه</button>
-      </div>
-      <div id="recentItems" class="grid"></div>
-    </section>
+  <div class="section-head cinematic-section-head">
+    <div><span class="eyebrow">MY PICKS</span><h2>ست‌های منتخب</h2></div>
+    <button class="text-link" onclick="goPage('saved')">مشاهده همه</button>
+  </div>
+
+  <div id="homeFeaturedLooks" class="featured-looks">
+    <div class="empty-featured">هنوز ست ذخیره‌شده‌ای نداری.</div>
+  </div>
+
+  <div class="section-head cinematic-section-head">
+    <div><span class="eyebrow">RECENT</span><h2>آخرین لباس‌ها</h2></div>
+    <button class="text-link" onclick="goPage('wardrobe')">مشاهده همه</button>
+  </div>
+  <div id="recentItems" class="recent-items cinematic-recent"></div>
+</section>
 
     <section id="wardrobe" class="page">
       <div class="section-head">
@@ -210,7 +222,7 @@
       
       <div id="outfitResult"></div>
     </section>
-    <section id="saved" class="page">
+    <section id="saved" class="page cinematic-saved">
       <div class="section-head"><h2>ست‌های من</h2><span class="mini-note">ذخیره‌شده‌ها</span></div>
       <div id="savedOutfits"></div>
     </section>
@@ -221,7 +233,7 @@
         <div class="profile-mark">W</div>
         <h3>استایل شخصی</h3>
         <p>تنظیمات شخصی‌سازی استایل، سایزها، برندهای موردعلاقه و ترجیحات پوشش در نسخه‌های بعدی اینجا قرار می‌گیرند.</p>
-        <div class="profile-row"><span>نسخه اپ</span><strong>3.8.4</strong></div>
+        <div class="profile-row"><span>نسخه اپ</span><strong>3.9</strong></div>
         <div class="profile-row"><span>ذخیره اطلاعات</span><strong>روی همین گوشی</strong></div>
       </div>
     </section>
@@ -269,6 +281,7 @@
     });
   }
   </script>
-<script src="app.js?v=384"></script>
+<script src="app.js?v=390"></script>
+  <input id="savedTryonInput" type="file" accept="image/*" hidden onchange="handleSavedTryonImage(event)">
 </body>
 </html>
