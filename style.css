@@ -150,3 +150,5 @@ legend{padding:0 6px;color:#d9d6cf;font-size:14px}
 .v33-tip{padding:7px 0;border-top:1px solid var(--line)}
 .v33-tip span{display:block;color:var(--muted)}
 .v33-improve small{display:block;margin-top:7px;color:var(--muted)}
+
+.score-detail + .score-detail{margin-top:3px;color:var(--muted)}

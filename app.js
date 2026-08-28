@@ -327,6 +327,7 @@ function generateOutfit(){
       audit:result.audit,
       reasons:result.reasons,
       audit:result.audit,
+      colorStrategy:result.colorStrategy,
       order:order++
     });
   }
@@ -357,6 +358,7 @@ function generateOutfit(){
     total:c.score,
     breakdown:c.breakdown,
     audit:c.audit,
+    colorStrategy:c.colorStrategy,
     reasons:c.reasons,
     occasion,
     season:weather,
@@ -371,7 +373,7 @@ function generateOutfit(){
     return `<div class="outfit-card card">
       <div class="rank-label">${idx+1}. ${labels[idx]}</div>
       <div class="score-row">
-        <div><div class="score">${c.score}/100</div><div class="score-detail">STYLE SCORE</div></div>
+        <div><div class="score">${c.score}/100</div><div class="score-detail">STYLE SCORE</div><div class="score-detail">استراتژی رنگی: ${c.colorStrategy||"—"}</div></div>
       </div>
 
       <div class="v31-breakdown">
@@ -548,7 +550,7 @@ function v31Silhouette(top,bottom,occasion){
       'relaxed|regular':[18,'حجم آزاد بالاتنه با پایین‌تنه کنترل‌شده تعادل خوبی ساخته'],
       'relaxed|relaxed':[17,'فرم آزاد در هر دو بخش برای کژوال قابل‌قبول است؛ بهتر است حجم‌ها اغراق‌آمیز نباشند'],
       'slim|relaxed':[16,'کنتراست حجم زیاد است اما در کژوال می‌تواند عمدی و قابل‌قبول باشد'],
-      'oversized|regular':[17,'بالاتنه اورسایز با پایین‌تنه کنترل‌شده یک سیلوئت مدرن می‌سازد'],
+      'oversized|regular':[17,'بالاتنه اورسایز با پایین‌تنه کنترل‌شده یک فرم کلی لباس مدرن می‌سازد'],
       'oversized|relaxed':[16,'حجم کلی زیاد است و به کفش و قد لباس وابستگی بیشتری دارد']
     },
     smart:{
@@ -926,7 +928,7 @@ function v32WhyCard(result){
 }
 
 
-// ===== V3.4: category-aware thermal logic + all 8 auditable criteria =====
+// ===== V3.5: category-aware thermal logic + all 8 auditable criteria =====
 function v321PenaltyAudit(maxScore, penalties, positives=[]){
   const totalPenalty = penalties.reduce((s,p)=>s+Math.max(0,p.points||0),0);
   const score = Math.max(0, maxScore-totalPenalty);
@@ -1034,7 +1036,7 @@ document.getElementById('category')?.addEventListener('change',v321ToggleThermal
 setTimeout(v321ToggleThermalFields,0);
 
 
-// ===== V3.4 — «چطور این ست بهتر می‌شود؟» =====
+// ===== V3.5 — «چطور این ست بهتر می‌شود؟» =====
 function v33ColorName(c){
  const m={black:'مشکی',white:'سفید',charcoal:'زغالی',navy:'سرمه‌ای',denim_blue:'جین آبی',blue:'آبی',
  light_blue:'آبی روشن',gray:'طوسی',gray_light:'طوسی روشن',cream:'کرم',beige:'بژ',camel:'شتری',
@@ -1089,3 +1091,216 @@ function v33ImproveCard(combo,occasion,weather){
  <small>این پیشنهادها با ثابت نگه‌داشتن سایر مشخصات لباس و تغییر فقط رنگ محاسبه شده‌اند.</small>
  </div>`;
 }
+
+
+// ===== WARDROBE V3.5 — Context-Aware Color Strategy Engine =====
+
+function v35ColorName(c){
+  const m={
+    black:'مشکی',white:'سفید',ivory:'شیری',cream:'کرم',beige:'بژ',camel:'شتری',
+    gray:'طوسی',gray_light:'طوسی روشن',charcoal:'زغالی',navy:'سرمه‌ای',blue:'آبی',
+    light_blue:'آبی روشن',denim_blue:'جین آبی',petrol:'آبی نفتی',brown:'قهوه‌ای',
+    brown_dark:'قهوه‌ای تیره',khaki:'خاکی',olive:'زیتونی',jade:'یشمی',
+    green:'سبز',burgundy:'زرشکی',red:'قرمز',brick:'آجری',mustard:'خردلی',
+    yellow:'زرد',orange:'نارنجی',pink:'صورتی',peach:'گلبهی',purple:'بنفش',lilac:'یاسی'
+  };
+  return m[c]||c||'نامشخص';
+}
+
+function v35IsNeutral(c){
+  return ['black','white','ivory','cream','beige','camel','gray','gray_light','charcoal','navy','brown'].includes(c);
+}
+function v35Lum(c){
+  const map={
+    black:5,charcoal:18,navy:20,brown_dark:22,burgundy:24,jade:26,olive:30,
+    brown:32,petrol:34,blue:45,denim_blue:50,green:48,red:50,purple:45,
+    gray:55,khaki:58,brick:58,mustard:62,orange:65,pink:72,light_blue:75,
+    camel:70,beige:78,gray_light:80,lilac:82,peach:84,cream:90,ivory:94,white:100
+  };
+  return map[c] ?? 50;
+}
+function v35Family(c){
+  return v31Family ? v31Family(c) : (colorFamily?.[c] || c || 'other');
+}
+function v35PairCompat(a,b){
+  if(!a||!b) return 0.6;
+  if(a===b) return 0.9;
+  const fa=v35Family(a), fb=v35Family(b);
+  if(fa===fb) return 0.9;
+  if(v35IsNeutral(a)||v35IsNeutral(b)) return 0.86;
+  const complementary = new Set([
+    'blue|orange','orange|blue','red|green','green|red','purple|yellow','yellow|purple'
+  ]);
+  if(complementary.has(`${fa}|${fb}`)) return 0.82;
+  return 0.66;
+}
+
+function v35DetectStrategy(items){
+  const colors=items.map(i=>i.color).filter(Boolean);
+  if(colors.length<2) return 'ساده';
+  const families=colors.map(v35Family);
+  const lums=colors.map(v35Lum);
+  const uniqueFamilies=new Set(families);
+  const uniqueColors=new Set(colors);
+  const neutralCount=colors.filter(v35IsNeutral).length;
+  const range=Math.max(...lums)-Math.min(...lums);
+
+  if(uniqueColors.size===1) return 'تک‌رنگ';
+  if(uniqueFamilies.size===1) return 'تونال';
+  if(neutralCount===colors.length) return range>=45?'خنثی با کنتراست':'خنثی';
+  if(neutralCount>=colors.length-1 && range>=40) return 'خنثی با رنگ تأکیدی';
+  if(range>=55) return 'کنتراست روشن/تیره';
+  return 'ترکیب چندرنگ کنترل‌شده';
+}
+
+function v35ColorAudit(items){
+  const max=25;
+  let score=max;
+  const penalties=[], positives=[];
+  const colors=items.map(i=>i.color).filter(Boolean);
+  const lums=colors.map(v35Lum);
+  const strategy=v35DetectStrategy(items);
+
+  // Base harmony
+  const pairScores=[];
+  for(let i=0;i<colors.length;i++) for(let j=i+1;j<colors.length;j++){
+    pairScores.push(v35PairCompat(colors[i],colors[j]));
+  }
+  const avg=pairScores.length?pairScores.reduce((a,b)=>a+b,0)/pairScores.length:0.8;
+  if(avg<0.72) penalties.push({points:4,text:'هماهنگی پایه بین بعضی رنگ‌ها ضعیف است'});
+  else if(avg<0.82) penalties.push({points:2,text:'هماهنگی پایه خوب است اما کامل نیست'});
+  else positives.push('هماهنگی پایه رنگ‌ها قوی است');
+
+  // Contrast quality
+  const range=lums.length?Math.max(...lums)-Math.min(...lums):0;
+  if(range<12 && colors.length>=3){
+    penalties.push({points:2,text:'کنتراست روشن/تیره خیلی کم است و ست کمی تخت دیده می‌شود'});
+  } else if(range>75 && colors.length>=3){
+    // High contrast is not automatically bad; only penalize if there is no balancing neutral/echo
+    const neutrals=colors.filter(v35IsNeutral).length;
+    if(neutrals===0) penalties.push({points:1,text:'کنتراست بسیار شدید است و عامل خنثی‌کننده کمی دارد'});
+    else positives.push('کنتراست شدید با حضور رنگ خنثی کنترل شده است');
+  } else positives.push('کنتراست روشن/تیره کنترل‌شده است');
+
+  // Light/dark visual balance
+  const dark=colors.filter(c=>v35Lum(c)<35).length;
+  const light=colors.filter(c=>v35Lum(c)>75).length;
+  if(colors.length>=3 && dark===colors.length){
+    penalties.push({points:2,text:'همه اجزا تیره‌اند و وزن بصری ست زیاد شده'});
+  } else if(colors.length>=3 && light===colors.length){
+    penalties.push({points:1,text:'همه اجزا بسیار روشن‌اند و عمق بصری ست کم شده'});
+  } else positives.push('توزیع تیرگی و روشنی متعادل است');
+
+  // Accent-point logic
+  if(colors.length>=3){
+    const counts={};
+    colors.forEach(c=>counts[v35Family(c)]=(counts[v35Family(c)]||0)+1);
+    const singletons=Object.values(counts).filter(v=>v===1).length;
+    if(strategy.includes('رنگ تأکیدی') || (singletons===1 && new Set(Object.values(counts)).size>1)){
+      positives.push('یک نقطه تأکیدی کنترل‌شده در ترکیب وجود دارد');
+    }
+  }
+
+  // Smart repetition / color echo
+  let echo=0;
+  for(let i=0;i<colors.length;i++) for(let j=i+1;j<colors.length;j++){
+    if(colors[i]===colors[j]) echo=Math.max(echo,2);
+    else if(v35Family(colors[i])===v35Family(colors[j])) echo=Math.max(echo,1);
+  }
+  if(echo===2) positives.push('یک رنگ به‌صورت هوشمند در ست تکرار شده');
+  else if(echo===1) positives.push('خانواده رنگی در بیش از یک جزء تکرار شده');
+  else if(strategy==='تک‌رنگ'||strategy==='تونال') positives.push('استراتژی تونال خودش انسجام رنگی ایجاد کرده');
+  else penalties.push({points:1,text:'تکرار هوشمند رنگ محدود است'});
+
+  const totalPenalty=penalties.reduce((s,p)=>s+p.points,0);
+  score=Math.max(0,max-totalPenalty);
+  return {score,strategy,penalties,positives};
+}
+
+function v35VisualAudit(items){
+  const max=5;
+  let score=max;
+  const penalties=[], positives=[];
+  const top=items.find(i=>i.category==='top');
+  const bottom=items.find(i=>i.category==='bottom');
+  const shoe=items.find(i=>i.category==='shoe');
+
+  if(top&&bottom&&shoe){
+    const tl=v35Lum(top.color), bl=v35Lum(bottom.color), sl=v35Lum(shoe.color);
+
+    // White/light sneaker balancing darker top + mid denim
+    if(tl<30 && bl>=35 && bl<=65 && sl>85){
+      positives.push('کفش روشن، وزن بصری بالاتنه تیره را متعادل کرده');
+    }
+
+    // Black shoe + black top around light/medium denim can be heavier
+    if(tl<20 && sl<20 && bl>=40){
+      penalties.push({points:2,text:'بالا و کفش هر دو بسیار تیره‌اند و پایین‌تنه بین دو جرم تیره قرار گرفته'});
+    }
+
+    // Blue/navy shoe with blue denim gives tonal continuity
+    if(v35Family(bottom.color)==='blue' && v35Family(shoe.color)==='blue'){
+      positives.push('کفش و شلوار پیوستگی تونال ایجاد کرده‌اند');
+    }
+
+    // all-white or all-light + black shoe can be purposeful accent, not auto-penalized
+    if(tl>85 && bl>75 && sl<20){
+      positives.push('کفش تیره به‌عنوان نقطه تأکیدی عمدی در ست روشن عمل کرده');
+    }
+  }
+
+  const totalPenalty=penalties.reduce((s,p)=>s+p.points,0);
+  score=Math.max(0,max-totalPenalty);
+  return {score,penalties,positives};
+}
+
+function v35ExplainColor(colorAudit){
+  const lines=[
+    `استراتژی رنگی: ${colorAudit.strategy}`,
+    'امتیاز پایه: 25/25',
+    ...colorAudit.positives.map(t=>`✓ ${t}`),
+    ...colorAudit.penalties.map(p=>`− ${p.points} | ${p.text}`),
+    `نتیجه: 25${colorAudit.penalties.length?' − '+colorAudit.penalties.reduce((s,p)=>s+p.points,0):''} = ${colorAudit.score}/25`
+  ];
+  return {score:colorAudit.score,lines};
+}
+
+function v35ExplainVisual(v){
+  const total=v.penalties.reduce((s,p)=>s+p.points,0);
+  return {
+    score:v.score,
+    lines:[
+      'امتیاز پایه: 5/5',
+      ...v.positives.map(t=>`✓ ${t}`),
+      ...v.penalties.map(p=>`− ${p.points} | ${p.text}`),
+      `نتیجه: 5${total?' − '+total:''} = ${v.score}/5`
+    ]
+  };
+}
+
+
+
+const _v31Evaluate35 = v31Evaluate;
+v31Evaluate = function(items,occasion,weather){
+  const r=_v31Evaluate35(items,occasion,weather);
+  if(r.hardFail) return r;
+
+  const oldColor=r.breakdown.color||0;
+  const oldVisual=r.breakdown.visual||0;
+
+  const c=v35ColorAudit(items);
+  const v=v35VisualAudit(items);
+
+  r.breakdown.color=c.score;
+  r.breakdown.visual=v.score;
+  r.score=Math.max(0,Math.min(100,r.score-oldColor-oldVisual+c.score+v.score));
+
+  r.audit=r.audit||{};
+  r.audit.color=v35ExplainColor(c);
+  r.audit.visual=v35ExplainVisual(v);
+  r.colorStrategy=c.strategy;
+
+  // expose a plain-language reason for ranking
+  r.reasons=[`استراتژی رنگی: ${c.strategy}`,...(r.reasons||[])];
+  return r;
+};
