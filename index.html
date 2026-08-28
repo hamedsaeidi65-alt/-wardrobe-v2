@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#111111"/>
   <title>Wardrobe V2</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=380"/>
+  <link rel="stylesheet" href="style.css?v=381"/>
 </head>
 <body>
   <header class="topbar">
     <div>
-      <div class="eyebrow">WARDROBE V3.8</div>
+      <div class="eyebrow">WARDROBE V3.8.1</div>
       <h1>استایل شخصی من</h1>
     </div>
     <button class="icon-btn" id="installBtn" hidden>＋ نصب</button>
@@ -219,7 +219,7 @@
         <div class="profile-mark">W</div>
         <h3>استایل شخصی</h3>
         <p>تنظیمات شخصی‌سازی استایل، سایزها، برندهای موردعلاقه و ترجیحات پوشش در نسخه‌های بعدی اینجا قرار می‌گیرند.</p>
-        <div class="profile-row"><span>نسخه اپ</span><strong>3.8</strong></div>
+        <div class="profile-row"><span>نسخه اپ</span><strong>3.8.1</strong></div>
         <div class="profile-row"><span>ذخیره اطلاعات</span><strong>روی همین گوشی</strong></div>
       </div>
     </section>
@@ -248,6 +248,22 @@
       </div>
     </div>
   </div>
+
+
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-btn active" data-page="home" onclick="showPage('home',this)">
+      <span>خانه</span>
+    </button>
+    <button class="nav-btn" data-page="wardrobe" onclick="showPage('wardrobe',this)">
+      <span>کمد</span>
+    </button>
+    <button class="nav-btn" data-page="saved" onclick="showPage('saved',this)">
+      <span>ست‌های من</span>
+    </button>
+    <button class="nav-btn" data-page="profile" onclick="showPage('profile',this)">
+      <span>پروفایل</span>
+    </button>
+  </nav>
 
 </body>
 </html>

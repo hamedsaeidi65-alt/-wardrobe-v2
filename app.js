@@ -1552,3 +1552,18 @@ function openDedicatedTryonChat(){
   window.open(DEDICATED_TRYON_CHAT_URL,'_blank','noopener,noreferrer');
 }
 
+
+// ===== V3.8.1 — Bottom navigation safety =====
+function syncBottomNavActive(pageId){
+  document.querySelectorAll('.bottom-nav .nav-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.page===pageId);
+  });
+}
+const _wardrobeShowPage = typeof showPage==='function' ? showPage : null;
+if(_wardrobeShowPage){
+  window.showPage = function(pageId, btn){
+    const result = _wardrobeShowPage(pageId, btn);
+    syncBottomNavActive(pageId);
+    return result;
+  };
+}
