@@ -531,21 +531,59 @@ function v31Color(items){
 }
 
 function v31Silhouette(top,bottom,occasion){
-  if(!top||!bottom) return {score:13,reasons:['اطلاعات فرم کلی لباس کامل نیست']};
-  const a=String(top.fit||'Regular').toLowerCase();
-  const b=String(bottom.fit||'Regular').toLowerCase();
-  let score=15, reasons=[];
-  if(v31Loose(a)!==v31Loose(b)){
-    score=17; reasons.push('تفاوت کنترل‌شده حجم بالا و پایین، فرم کلی لباس متعادلی ساخته');
-  }else if(v31Loose(a)&&v31Loose(b)){
-    score=occasion==='sport'?18:14;
-    reasons.push(occasion==='sport'?'حجم آزاد با استایل اسپرت/استریت سازگار است':'حجم زیاد در هر دو بخش کمی از تعادل کم کرده');
-  }else if(v31Slim(a)&&v31Slim(b)){
-    score=14; reasons.push('فرم کلی باریک است و تنوع حجمی کمی دارد');
-  }else{
-    score=16; reasons.push('فرم کلی لباس‌ها متعادل و کم‌ریسک است');
+  if(!top||!bottom) return {score:13,reasons:['اطلاعات فرم بالاتنه یا پایین‌تنه کامل نیست']};
+  const norm=x=>{
+    x=String(x||'Regular').toLowerCase();
+    if(x.includes('oversize'))return 'oversized';
+    if(x.includes('relax')||x.includes('loose')||x.includes('baggy'))return 'relaxed';
+    if(x.includes('slim')||x.includes('skinny'))return 'slim';
+    return 'regular';
+  };
+  const a=norm(top.fit), b=norm(bottom.fit);
+  const ctx=String(occasion||'casual').toLowerCase();
+  const matrices={
+    casual:{
+      'regular|regular':[18,'فرم مرتب و کم‌ریسک برای استایل روزمره'],
+      'regular|relaxed':[19,'بالاتنه مرتب و پایین‌تنه آزاد، اختلاف حجم کنترل‌شده و مدرن ایجاد کرده'],
+      'relaxed|regular':[18,'حجم آزاد بالاتنه با پایین‌تنه کنترل‌شده تعادل خوبی ساخته'],
+      'relaxed|relaxed':[17,'فرم آزاد در هر دو بخش برای کژوال قابل‌قبول است؛ بهتر است حجم‌ها اغراق‌آمیز نباشند'],
+      'slim|relaxed':[16,'کنتراست حجم زیاد است اما در کژوال می‌تواند عمدی و قابل‌قبول باشد'],
+      'oversized|regular':[17,'بالاتنه اورسایز با پایین‌تنه کنترل‌شده یک سیلوئت مدرن می‌سازد'],
+      'oversized|relaxed':[16,'حجم کلی زیاد است و به کفش و قد لباس وابستگی بیشتری دارد']
+    },
+    smart:{
+      'regular|regular':[20,'فرم تمیز و کنترل‌شده برای اسمارت‌کژوال بسیار مناسب است'],
+      'regular|relaxed':[18,'Relaxed کنترل‌شده در پایین با بالاتنه Regular می‌تواند اسمارت‌کژوال مدرن بسازد'],
+      'relaxed|regular':[18,'بالاتنه Relaxed کنترل‌شده با پایین‌تنه مرتب قابل‌قبول است'],
+      'relaxed|relaxed':[15,'حجم آزاد در هر دو بخش از رسمیت اسمارت‌کژوال کم می‌کند'],
+      'slim|regular':[18,'فرم جمع‌وجور و مرتب با اسمارت‌کژوال سازگار است']
+    },
+    formal:{
+      'regular|regular':[20,'فرم کنترل‌شده و متوازن با موقعیت رسمی هماهنگ است'],
+      'regular|relaxed':[14,'پایین‌تنه Relaxed برای موقعیت رسمی معمولاً بیش از حد آزاد است'],
+      'relaxed|regular':[14,'بالاتنه Relaxed از ساختار رسمی ست کم می‌کند'],
+      'relaxed|relaxed':[11,'حجم آزاد در هر دو بخش با رسمیت کلاسیک هم‌خوانی کمی دارد']
+    },
+    sport:{
+      'regular|relaxed':[18,'ترکیب Regular و Relaxed برای استایل اسپرت آزادی حرکت و تعادل خوبی دارد'],
+      'relaxed|relaxed':[20,'فرم آزاد در استایل اسپرت طبیعی و هماهنگ است'],
+      'relaxed|regular':[18,'حجم آزاد بالا و پایین‌تنه کنترل‌شده برای اسپرت مناسب است'],
+      'regular|regular':[17,'فرم Regular در اسپرت مرتب و کاربردی است']
+    }
+  };
+  let group='casual';
+  if(ctx.includes('smart')||ctx.includes('اسمارت'))group='smart';
+  else if(ctx.includes('formal')||ctx.includes('رسم'))group='formal';
+  else if(ctx.includes('sport')||ctx.includes('اسپرت'))group='sport';
+  const key=a+'|'+b;
+  let hit=matrices[group][key];
+  if(!hit){
+    const diff={slim:0,regular:1,relaxed:2,oversized:3};
+    const d=Math.abs(diff[a]-diff[b]);
+    const score=d<=1?17:(d===2?14:12);
+    hit=[score,d<=1?'اختلاف حجم بالاتنه و پایین‌تنه کنترل‌شده است':'اختلاف حجم بالاتنه و پایین‌تنه زیاد است و به استایل هدف وابستگی بیشتری دارد'];
   }
-  return {score,reasons};
+  return {score:hit[0],reasons:[hit[1],`ترکیب فرم: ${a} بالا + ${b} پایین؛ ارزیابی متناسب با موقعیت انجام شده`]};
 }
 
 function v31Occasion(items,occasion){
@@ -888,7 +926,7 @@ function v32WhyCard(result){
 }
 
 
-// ===== V3.3: category-aware thermal logic + all 8 auditable criteria =====
+// ===== V3.4: category-aware thermal logic + all 8 auditable criteria =====
 function v321PenaltyAudit(maxScore, penalties, positives=[]){
   const totalPenalty = penalties.reduce((s,p)=>s+Math.max(0,p.points||0),0);
   const score = Math.max(0, maxScore-totalPenalty);
@@ -996,7 +1034,7 @@ document.getElementById('category')?.addEventListener('change',v321ToggleThermal
 setTimeout(v321ToggleThermalFields,0);
 
 
-// ===== V3.3 — «چطور این ست بهتر می‌شود؟» =====
+// ===== V3.4 — «چطور این ست بهتر می‌شود؟» =====
 function v33ColorName(c){
  const m={black:'مشکی',white:'سفید',charcoal:'زغالی',navy:'سرمه‌ای',denim_blue:'جین آبی',blue:'آبی',
  light_blue:'آبی روشن',gray:'طوسی',gray_light:'طوسی روشن',cream:'کرم',beige:'بژ',camel:'شتری',
@@ -1041,7 +1079,7 @@ function v33ImproveCard(combo,occasion,weather){
    return `<div class="v33-improve"><strong>چطور این ست بهتر می‌شود؟</strong><div>این ست از نظر اطلاعات ثبت‌شده تقریباً به سقف امتیاز رسیده است.</div></div>`;
  }
  if(!ideas.length){
-   return `<div class="v33-improve"><strong>چطور این ست بهتر می‌شود؟</strong><div>با تغییر رنگ ساده در سه جزء اصلی، گزینه‌ای با امتیاز بالاتر پیدا نشد؛ بهبود بعدی احتمالاً به فرم، جنس، کفش یا لایه‌بندی مربوط است.</div></div>`;
+   return `<div class="v33-improve"><strong>چطور این ست بهتر می‌شود؟</strong><div>با تغییر فقط رنگِ بالاتنه، پایین‌تنه یا کفش، امتیاز بالاتری پیدا نشد. برای بهتر شدن این ست باید مدل، فرم، جنس یا نوع یکی از اجزا تغییر کند.</div></div>`;
  }
  return `<div class="v33-improve"><strong>چطور این ست بهتر می‌شود؟</strong>
  ${ideas.map(x=>`<div class="v33-tip">
