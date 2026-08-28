@@ -112,3 +112,12 @@ V3.7.2 — Gradio API Discovery Fix
 - payload با ترتیب واقعی app.py به صورت positional array ارسال می‌شود.
 - @gradio/client از نسخه جاری CDN بارگذاری می‌شود.
 - دکمه «تست اتصال رایگان» وضعیت واقعی endpoint را نشان می‌دهد.
+
+
+V3.8 — ChatGPT Try-On Handoff
+- بخش VTON/مانکن قبلی حذف شده و پرو از طریق چت اختصاصی ChatGPT انجام می‌شود.
+- هر ست به یک تصویر واحد JPEG تبدیل می‌شود (بالاتنه، پایین‌تنه، رویه، کفش، اکسسوری).
+- امکان Save و Share تصویر ست.
+- Prompt پرو خودکار ساخته و در Clipboard کپی می‌شود.
+- دکمه مستقیم برای باز کردن چت اختصاصی:
+  https://chatgpt.com/g/g-p-6a910b96e16481919c8bf51cbfcaf84d-wardrobe-virtual-try-on/c/6a910b2c-9bf8-83eb-9102-3d7f4a83f84e

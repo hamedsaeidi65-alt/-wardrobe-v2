@@ -6,12 +6,12 @@
   <meta name="theme-color" content="#111111"/>
   <title>Wardrobe V2</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=372"/>
+  <link rel="stylesheet" href="style.css?v=380"/>
 </head>
 <body>
   <header class="topbar">
     <div>
-      <div class="eyebrow">WARDROBE V3.7.2</div>
+      <div class="eyebrow">WARDROBE V3.8</div>
       <h1>استایل شخصی من</h1>
     </div>
     <button class="icon-btn" id="installBtn" hidden>＋ نصب</button>
@@ -206,30 +206,6 @@
         </label>
         <button class="primary" onclick="generateOutfit()">ساخت ست</button>
       </div>
-
-      
-      <div class="card mannequin-outfit-card">
-        <div class="mannequin-outfit-head">
-          <div>
-            <strong>مانکن ثابت پرو مجازی</strong>
-            <div class="mini-note">مرد • ۴۰ سال • ۱۸۲ cm • ۹۰ kg</div>
-          </div>
-          <span class="mannequin-lock">🔒 ثابت</span>
-        </div>
-        <div class="mannequin-outfit-body">
-          <img src="mannequin-fixed.jpeg" alt="مانکن ثابت" class="mannequin-outfit-img">
-          <div class="mannequin-outfit-copy">
-            <p>چهره و اندام این مانکن در همه پروها ثابت می‌ماند. فقط لباس‌ها تغییر می‌کنند.</p>
-            <button class="secondary" type="button" onclick="openMannequinPreview()">نمایش مانکن تمام‌قد</button>
-          </div>
-        </div>
-        <div class="vton-service-note">
-          موتور رایگان: FASHN VTON 1.5 روی Hugging Face ZeroGPU
-          <div id="vtonConnectionState" class="vton-connection-state">وضعیت اتصال: بررسی نشده</div>
-          <button class="text-btn vton-test-btn" type="button" onclick="testVtonConnection()">تست اتصال رایگان</button>
-        </div>
-      </div>
-
       <div id="outfitResult"></div>
     </section>
     <section id="saved" class="page">
@@ -243,68 +219,35 @@
         <div class="profile-mark">W</div>
         <h3>استایل شخصی</h3>
         <p>تنظیمات شخصی‌سازی استایل، سایزها، برندهای موردعلاقه و ترجیحات پوشش در نسخه‌های بعدی اینجا قرار می‌گیرند.</p>
-        <div class="profile-row"><span>مانکن مرجع</span><strong>ثابت و قفل‌شده</strong></div>
-        <div class="profile-row"><span>نسخه اپ</span><strong>3.7.2</strong></div>
+        <div class="profile-row"><span>نسخه اپ</span><strong>3.8</strong></div>
         <div class="profile-row"><span>ذخیره اطلاعات</span><strong>روی همین گوشی</strong></div>
       </div>
     </section>
 
   </main>
 
-  
-  
-  <div id="mannequinModal" class="mannequin-modal" onclick="closeMannequinPreview(event)">
-    <div class="mannequin-modal-card vton-modal-card vton-result-only">
-      <button class="mannequin-close" onclick="closeMannequinPreview(event,true)">×</button>
-      <div class="vton-result-title"><strong>پرو روی مانکن</strong></div>
-      <div id="vtonResultWrap" class="vton-result-wrap vton-result-large">
-        <div class="vton-empty">در حال آماده‌سازی…</div>
-      </div>
-      <div id="vtonStatus" class="vton-status"></div>
-      <div id="vtonLimitations" class="vton-limitations">
-        مانکن مرجع در پشت‌صحنه ثابت می‌ماند و فقط لباس‌ها برای پرو ارسال می‌شوند.
-      </div>
-    </div>
-  </div>
 
-        </div>
+  <div id="chatgptTryonModal" class="chatgpt-tryon-modal" onclick="closeChatgptTryonModal(event)">
+    <div class="chatgpt-tryon-card">
+      <button class="chatgpt-tryon-close" onclick="closeChatgptTryonModal(event,true)">×</button>
+      <h3>پرو در ChatGPT</h3>
+      <p class="chatgpt-tryon-sub">تصویر ست آماده شد. حالا آن را ذخیره یا Share کن، سپس چت اختصاصی پرو را باز کن.</p>
+
+      <div id="chatgptTryonPreview" class="chatgpt-tryon-preview"></div>
+
+      <div class="chatgpt-tryon-actions">
+        <button type="button" class="primary" onclick="savePreparedSetImage()">ذخیره تصویر ست</button>
+        <button type="button" class="secondary" onclick="sharePreparedSetImage()">Share تصویر ست</button>
+        <button type="button" class="secondary" onclick="copyPreparedTryonPrompt()">کپی متن پرو</button>
+        <button type="button" class="primary" onclick="openDedicatedTryonChat()">باز کردن چت پرو</button>
       </div>
-      <div class="mannequin-modal-info">
-        <strong>مانکن ثابت</strong>
-        <span>۱۸۲ cm • ۹۰ kg • ۴۰ سال • مرد</span>
-      </div>
-      <div id="vtonStatus" class="vton-status"></div>
-      <div id="vtonLimitations" class="vton-limitations">
-        مدل رایگان فعلی بالاتنه، پایین‌تنه و لباس یک‌تکه را پشتیبانی می‌کند. کفش را تغییر نمی‌دهد.
+
+      <div id="chatgptTryonStatus" class="chatgpt-tryon-status"></div>
+      <div class="chatgpt-tryon-help">
+        داخل چت ChatGPT، آخرین تصویر ست را ضمیمه کن، متن کپی‌شده را Paste کن و Send بزن.
       </div>
     </div>
   </div>
 
-  </div>
-
-  <nav class="bottom-nav">
-    <button onclick="goPage('home')" data-page="home" class="active">خانه</button>
-    <button onclick="goPage('wardrobe')" data-page="wardrobe">کمد</button>
-    <button onclick="goPage('saved')" data-page="saved">ست‌های من</button>
-    <button onclick="goPage('profile')" data-page="profile">پروفایل</button>
-  </nav>
-
-
-  <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(regs){
-      regs.forEach(function(reg){ reg.unregister(); });
-    });
-  }
-  </script>
-  
-  <script type="module">
-    import { Client, handle_file } from "https://cdn.jsdelivr.net/npm/@gradio/client/dist/index.min.js";
-    window.GradioClient = Client;
-    window.gradioHandleFile = handle_file;
-    window.dispatchEvent(new Event("gradio-client-ready"));
-  </script>
-
-  <script src="app.js?v=372"></script>
 </body>
 </html>

@@ -390,8 +390,9 @@ function generateOutfit(){
       <div class="v31-why"><strong>چرا این رتبه؟</strong><br>${v31Why(c,unique[idx+1])}</div>${v321AllAuditCard(c)}${v33ImproveCard(c,occasion,weather)}
       <div class="outfit-items">${c.items.map(itemCard).join('')}</div>
       <div class="outfit-actions-v36">
-        <button class="secondary" onclick="previewOutfitOnMannequin(${idx})">پرو روی مانکن</button>
+        
         <button class="primary save-outfit-btn" onclick="saveSuggestedOutfit(${idx})">ذخیره در ست‌های من</button>
+      <button class="secondary chatgpt-tryon-btn" onclick="prepareChatgptTryon(${idx})">پرو در ChatGPT</button>
       </div>
     </div>`;
   }).join('');
@@ -1309,247 +1310,245 @@ v31Evaluate = function(items,occasion,weather){
 };
 
 
-// ===== V3.7.2 — Auto-Discovered Gradio API + Free ZeroGPU VTON =====
-const VTON_SPACE = "fashn-ai/fashn-vton-1.5";
-let vtonClient = null;
-let vtonEndpoint = null;
-let vtonEndpointInfo = null;
 
-function openMannequinPreview(){
-  const modal=document.getElementById('mannequinModal');
-  const wrap=document.getElementById('vtonResultWrap');
-  if(wrap) wrap.innerHTML='<img src="mannequin-fixed.jpeg" alt="مانکن مرجع" class="vton-output-image">';
-  vtonSetStatus('مانکن مرجع ثابت','');
-  modal?.classList.add('show');
+// ===== WARDROBE V3.8 — ChatGPT Try-On Handoff =====
+const DEDICATED_TRYON_CHAT_URL = "https://chatgpt.com/g/g-p-6a910b96e16481919c8bf51cbfcaf84d-wardrobe-virtual-try-on/c/6a910b2c-9bf8-83eb-9102-3d7f4a83f84e";
+let preparedTryonBlob = null;
+let preparedTryonUrl = null;
+let preparedTryonPrompt = '';
+
+function openChatgptTryonModal(){
+  document.getElementById('chatgptTryonModal')?.classList.add('show');
 }
-function openVtonProgress(){
-  const modal=document.getElementById('mannequinModal');
-  const wrap=document.getElementById('vtonResultWrap');
-  if(wrap) wrap.innerHTML='<div class="vton-loader"><div class="vton-spinner"></div><strong>در حال ساخت پرو…</strong><span>در حال اتصال به صف رایگان ZeroGPU</span></div>';
-  modal?.classList.add('show');
-}
-function closeMannequinPreview(e,force=false){
-  const modal=document.getElementById('mannequinModal');
+function closeChatgptTryonModal(e, force=false){
+  const modal=document.getElementById('chatgptTryonModal');
   if(force || e?.target===modal) modal?.classList.remove('show');
 }
-function vtonSetStatus(text,kind=''){
-  const el=document.getElementById('vtonStatus');
-  if(!el)return;
-  el.className='vton-status '+kind;
+function chatgptTryonStatus(text, kind=''){
+  const el=document.getElementById('chatgptTryonStatus');
+  if(!el) return;
+  el.className='chatgpt-tryon-status '+kind;
   el.textContent=text||'';
 }
-function vtonConnectionText(text,kind=''){
-  const el=document.getElementById('vtonConnectionState');
-  if(!el)return;
-  el.className='vton-connection-state '+kind;
-  el.textContent='وضعیت اتصال: '+text;
-}
-async function vtonWaitForClient(){
-  if(window.GradioClient && window.gradioHandleFile) return;
-  await new Promise((resolve,reject)=>{
-    const timer=setTimeout(()=>reject(new Error('کتابخانه اتصال Gradio لود نشد.')),15000);
-    window.addEventListener('gradio-client-ready',()=>{clearTimeout(timer);resolve();},{once:true});
-  });
-}
-function vtonNormalize(s){
-  return String(s||'').toLowerCase().replace(/[_\-\s]+/g,' ');
-}
-function vtonLooksLikeTryOn(info){
-  const ps=(info?.parameters||[]).map(p=>vtonNormalize(p?.label||p?.parameter_name||p?.name));
-  if(ps.length<8) return false;
-  const joined=ps.join('|');
-  return (
-    joined.includes('person') &&
-    joined.includes('garment') &&
-    joined.includes('category') &&
-    (joined.includes('sampling') || joined.includes('timesteps') || joined.includes('steps'))
-  );
-}
-function vtonDiscoverEndpoint(api){
-  const named=api?.named_endpoints||{};
-  const unnamed=api?.unnamed_endpoints||{};
 
-  // Prefer the auto-generated function-name endpoint.
-  for(const [key,info] of Object.entries(named)){
-    if(key.toLowerCase().includes('try_on') || key.toLowerCase().includes('try-on')){
-      return {endpoint:key,info,named:true};
+async function imageSourceToBitmap(src){
+  const res=await fetch(src);
+  if(!res.ok) throw new Error('خواندن یکی از تصاویر لباس ناموفق بود.');
+  const blob=await res.blob();
+  return await createImageBitmap(blob);
+}
+
+function wrapTextCanvas(ctx, text, x, y, maxWidth, lineHeight, maxLines=3){
+  const words=String(text||'').split(/\s+/);
+  let line='', lines=[];
+  for(const word of words){
+    const test=line?line+' '+word:word;
+    if(ctx.measureText(test).width>maxWidth && line){
+      lines.push(line); line=word;
+      if(lines.length>=maxLines-1) break;
+    } else line=test;
+  }
+  if(line && lines.length<maxLines) lines.push(line);
+  lines.forEach((ln,i)=>ctx.fillText(ln,x,y+i*lineHeight));
+}
+
+function getTryonOutfitByIndex(idx){
+  const items=loadItems();
+  if(window.currentSuggestedOutfits?.[idx]){
+    const o=window.currentSuggestedOutfits[idx];
+    return o.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);
+  }
+  if(window.currentSuggestedOutfit?.itemIds){
+    return window.currentSuggestedOutfit.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);
+  }
+  return [];
+}
+
+async function buildSetCompositeImage(outfitItems, idx){
+  const items=outfitItems.filter(Boolean);
+  if(!items.length) throw new Error('آیتمی برای ساخت تصویر ست پیدا نشد.');
+
+  const W=1200, H=1350;
+  const canvas=document.createElement('canvas');
+  canvas.width=W; canvas.height=H;
+  const ctx=canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle='#111113'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#E8C77B';
+  ctx.font='700 44px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  ctx.textAlign='right';
+  ctx.fillText(`WARDROBE — SET ${idx+1}`,W-70,75);
+
+  ctx.fillStyle='#F4F1EA';
+  ctx.font='700 54px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  ctx.fillText('تصویر مرجع ست برای پرو',W-70,140);
+
+  const order={top:1,bottom:2,outer:3,shoe:4,accessory:5};
+  const sorted=[...items].sort((a,b)=>(order[a.category]||9)-(order[b.category]||9));
+  const display=sorted.slice(0,5);
+
+  const margin=60, gap=24;
+  const usable=W-margin*2;
+  const cardW=Math.floor((usable-gap*(display.length-1))/display.length);
+  const cardY=220, cardH=760;
+
+  for(let i=0;i<display.length;i++) {
+    const item=display[i];
+    const x=margin+i*(cardW+gap);
+
+    ctx.fillStyle='#1D1D20';
+    roundRect(ctx,x,cardY,cardW,cardH,24,true,false);
+
+    // image
+    const imgY=cardY+20, imgH=500;
+    ctx.fillStyle='#29292D';
+    roundRect(ctx,x+16,imgY,cardW-32,imgH,18,true,false);
+
+    if(item.photo){
+      try{
+        const bmp=await imageSourceToBitmap(item.photo);
+        const ratio=Math.min((cardW-32)/bmp.width, imgH/bmp.height);
+        const dw=bmp.width*ratio, dh=bmp.height*ratio;
+        ctx.drawImage(bmp, x+16+(cardW-32-dw)/2, imgY+(imgH-dh)/2, dw, dh);
+        bmp.close?.();
+      }catch(e){
+        ctx.fillStyle='#9B9B9B'; ctx.font='24px sans-serif'; ctx.textAlign='center';
+        ctx.fillText('بدون تصویر',x+cardW/2,imgY+imgH/2);
+      }
+    } else {
+      ctx.fillStyle='#9B9B9B'; ctx.font='24px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('بدون تصویر',x+cardW/2,imgY+imgH/2);
     }
-  }
-  // Then match by the 8 input parameters.
-  for(const [key,info] of Object.entries(named)){
-    if(vtonLooksLikeTryOn(info)) return {endpoint:key,info,named:true};
-  }
-  // Gradio also exposes unnamed event endpoints by function index.
-  for(const [key,info] of Object.entries(unnamed)){
-    if(vtonLooksLikeTryOn(info)) return {endpoint:Number(key),info,named:false};
+
+    // labels
+    ctx.textAlign='right';
+    ctx.fillStyle='#F4F1EA';
+    ctx.font='700 27px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+    wrapTextCanvas(ctx,item.name||catFa(item.category),x+cardW-20,cardY+565,cardW-40,34,2);
+
+    ctx.fillStyle='#BDB9B0';
+    ctx.font='22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+    const meta=[catFa(item.category), colorFa(item.color), item.fit||''].filter(Boolean).join(' • ');
+    wrapTextCanvas(ctx,meta,x+cardW-20,cardY+640,cardW-40,30,2);
   }
 
-  // Last-resort: if there is exactly one endpoint accepting ~8 parameters.
-  const allNamed=Object.entries(named).filter(([,info])=>(info?.parameters||[]).length>=8);
-  if(allNamed.length===1){
-    return {endpoint:allNamed[0][0],info:allNamed[0][1],named:true};
-  }
-  const allUnnamed=Object.entries(unnamed).filter(([,info])=>(info?.parameters||[]).length>=8);
-  if(allUnnamed.length===1){
-    return {endpoint:Number(allUnnamed[0][0]),info:allUnnamed[0][1],named:false};
-  }
-  return null;
+  // instructions/footer
+  ctx.textAlign='right';
+  ctx.fillStyle='#F4F1EA';
+  ctx.font='700 30px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  ctx.fillText('دستور پرو:',W-70,1060);
+
+  ctx.fillStyle='#C9C6BF';
+  ctx.font='24px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  const footer='همین ست را روی مانکن ثابت چت اجرا کن. مدل، رنگ و فرم لباس‌ها و کفش را تا حد ممکن حفظ کن و چهره و اندام مانکن را تغییر نده.';
+  wrapTextCanvas(ctx,footer,W-70,1110,W-140,34,4);
+
+  ctx.fillStyle='#777';
+  ctx.font='20px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  ctx.fillText('Generated by Wardrobe',W-70,1300);
+
+  const blob=await new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('ساخت فایل تصویر ناموفق بود.')),'image/jpeg',0.92));
+  return blob;
 }
-async function vtonGetClient(){
-  await vtonWaitForClient();
-  if(vtonClient && vtonEndpoint!==null) return vtonClient;
 
-  vtonConnectionText('در حال اتصال…','loading');
-  vtonClient=await window.GradioClient.connect(VTON_SPACE,{
-    status_callback:(s)=>{
-      const st=s?.status||s?.stage||'';
-      if(st==='sleeping') vtonConnectionText('Space در حال بیدار شدن…','loading');
-      if(st==='running') vtonConnectionText('Space روشن است','success');
-      if(st==='space_error') vtonConnectionText('خطای Space','error');
-    },
-    record_history:false
-  });
-
-  const api=await vtonClient.view_api();
-  const found=vtonDiscoverEndpoint(api);
-  if(!found){
-    console.error('FASHN VTON API info:',api);
-    throw new Error('endpoint پرو در API سرویس پیدا نشد.');
-  }
-  vtonEndpoint=found.endpoint;
-  vtonEndpointInfo=found.info;
-  vtonConnectionText(`وصل شد (${String(vtonEndpoint)})`,'success');
-  return vtonClient;
+function roundRect(ctx,x,y,w,h,r,fill,stroke){
+  if(w<2*r)r=w/2; if(h<2*r)r=h/2;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+  if(fill)ctx.fill();
+  if(stroke)ctx.stroke();
 }
-async function testVtonConnection(){
+
+function makeTryonPrompt(items){
+  const names=items.map(i=>i.name||catFa(i.category)).join(' + ');
+  return `این تصویر، ست پیشنهادی اپ Wardrobe من است (${
+    names
+  }). همین ست را دقیقاً روی مانکن ثابت همین چت پرو کن. مدل، رنگ، فرم، فیت و جزئیات لباس‌ها و کفش را تا حد ممکن از روی تصویر حفظ کن. چهره، مو، اندام، نسبت‌های بدن، سن ظاهری، ژست و بک‌گراند مانکن ثابت را تغییر نده.`;
+}
+
+async function prepareChatgptTryon(idx){
   try{
-    await vtonGetClient();
-    alert('اتصال به سرویس رایگان برقرار است. endpoint پرو پیدا شد: '+String(vtonEndpoint));
+    const items=getTryonOutfitByIndex(idx);
+    if(!items.length) throw new Error('ست انتخابی پیدا نشد.');
+    chatgptTryonStatus('در حال ساخت تصویر واحد ست…','loading');
+    openChatgptTryonModal();
+
+    if(preparedTryonUrl) URL.revokeObjectURL(preparedTryonUrl);
+    preparedTryonBlob=await buildSetCompositeImage(items,idx);
+    preparedTryonUrl=URL.createObjectURL(preparedTryonBlob);
+    preparedTryonPrompt=makeTryonPrompt(items);
+
+    const preview=document.getElementById('chatgptTryonPreview');
+    if(preview) preview.innerHTML=`<img src="${preparedTryonUrl}" alt="تصویر واحد ست">`;
+
+    try{
+      await navigator.clipboard.writeText(preparedTryonPrompt);
+      chatgptTryonStatus('تصویر ست آماده شد و متن پرو هم کپی شد.','success');
+    }catch{
+      chatgptTryonStatus('تصویر ست آماده شد. برای کپی متن از دکمه «کپی متن پرو» استفاده کن.','success');
+    }
   }catch(e){
     console.error(e);
-    vtonConnectionText('ناموفق','error');
-    alert('اتصال برقرار نشد: '+String(e?.message||e));
+    chatgptTryonStatus(String(e?.message||e),'error');
   }
 }
-function dataUrlToBlob(dataUrl){
-  const [head,data]=dataUrl.split(',');
-  const mime=(head.match(/data:(.*?);/)||[])[1]||'image/jpeg';
-  const bytes=atob(data);
-  const arr=new Uint8Array(bytes.length);
-  for(let i=0;i<bytes.length;i++)arr[i]=bytes.charCodeAt(i);
-  return new Blob([arr],{type:mime});
-}
-async function sourceToBlob(src){
-  if(src instanceof Blob)return src;
-  if(typeof src==='string' && src.startsWith('data:'))return dataUrlToBlob(src);
-  const res=await fetch(src,{cache:'no-store'});
-  if(!res.ok)throw new Error('دریافت تصویر ناموفق بود.');
-  return await res.blob();
-}
-function vtonOutputUrl(result){
-  const data=result?.data||[];
-  const out=data[0];
-  if(!out)return null;
-  if(typeof out==='string')return out;
-  if(out.url)return out.url;
-  if(out.path){
-    // Newer Gradio returns file objects with url most of the time;
-    // path alone cannot be rendered cross-origin safely.
-    return out.url||null;
-  }
-  return null;
-}
-function vtonPayload(personFile,garmentFile,category){
-  // app.py order:
-  // person_image, garment_image, category, garment_photo_type,
-  // num_timesteps, guidance_scale, seed, segmentation_free
-  return [
-    window.gradioHandleFile(personFile),
-    window.gradioHandleFile(garmentFile),
-    category,
-    'flat-lay',
-    20,
-    1.5,
-    42,
-    true
-  ];
-}
-async function runSingleVton(personSource, garmentSource, category){
-  const client=await vtonGetClient();
-  const personBlob=await sourceToBlob(personSource);
-  const garmentBlob=await sourceToBlob(garmentSource);
-  const payload=vtonPayload(personBlob,garmentBlob,category);
 
-  vtonSetStatus(`در صف ZeroGPU برای ${category==='tops'?'بالاتنه':category==='bottoms'?'پایین‌تنه':'لباس'}…`,'loading');
-
-  // Positional payload is intentional: it follows the exact order exposed by app.py.
-  const result=await client.predict(vtonEndpoint,payload);
-  const url=vtonOutputUrl(result);
-  if(!url){
-    console.error('Unexpected VTON result:',result);
-    throw new Error('سرویس اجرا شد اما آدرس تصویر خروجی برنگشت.');
-  }
-  return url;
-}
-function vtonRenderableItems(selected){
-  const top=selected.find(i=>i.category==='top' && i.photo);
-  const bottom=selected.find(i=>i.category==='bottom' && i.photo);
-  const outer=selected.find(i=>i.category==='outer' && i.photo);
-  const onePiece=selected.find(i=>i.category==='one-piece' && i.photo);
-  const shoe=selected.find(i=>i.category==='shoe');
-  return {top,bottom,outer,onePiece,shoe};
-}
-async function previewOutfitOnMannequin(idx){
-  const outfit=window.currentSuggestedOutfits?.[idx];
-  if(!outfit)return;
-  const items=loadItems();
-  const selected=outfit.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);
-  const r=vtonRenderableItems(selected);
-
-  openVtonProgress();
-  const wrap=document.getElementById('vtonResultWrap');
-
-  if(!r.top && !r.bottom && !r.outer && !r.onePiece){
-    vtonSetStatus('برای پرو، حداقل عکس یک بالاتنه یا پایین‌تنه لازم است.','error');
+async function copyPreparedTryonPrompt(){
+  if(!preparedTryonPrompt){
+    chatgptTryonStatus('اول یک ست را با دکمه «پرو در ChatGPT» آماده کن.','error');
     return;
   }
-
   try{
-    let person='mannequin-fixed.jpeg';
-    let step=0;
-    const jobs=[];
-
-    if(r.onePiece){
-      jobs.push({item:r.onePiece,category:'one-pieces',label:'لباس یک‌تکه'});
-    }else{
-      if(r.top) jobs.push({item:r.top,category:'tops',label:'بالاتنه'});
-      if(r.bottom) jobs.push({item:r.bottom,category:'bottoms',label:'پایین‌تنه'});
-      if(r.outer) jobs.push({item:r.outer,category:'tops',label:'رویه'});
-    }
-
-    for(const job of jobs){
-      step++;
-      vtonSetStatus(`در حال پرو ${job.label} (${step}/${jobs.length})… سرویس رایگان ممکن است صف داشته باشد.`,'loading');
-      person=await runSingleVton(person,job.item.photo,job.category);
-    }
-
-    if(wrap)wrap.innerHTML=`<img src="${person}" alt="نتیجه پرو مجازی" class="vton-output-image">`;
-    let note='پرو رایگان انجام شد.';
-    if(r.shoe) note+=' مدل فعلی کفش را تغییر نمی‌دهد.';
-    vtonSetStatus(note,'success');
-  }catch(err){
-    console.error('VTON error',err);
-    const raw=String(err?.message||err||'خطای نامشخص');
-    let friendly=raw;
-    if(/quota|gpu|zero.?gpu|duration|exceeded/i.test(raw))
-      friendly='سهمیه رایگان ZeroGPU فعلاً تمام شده است. بعد از ریست سهمیه دوباره امتحان کن.';
-    else if(/queue|full|max_size/i.test(raw))
-      friendly='صف رایگان فعلاً پر است. چند دقیقه بعد دوباره امتحان کن.';
-    else if(/endpoint/i.test(raw))
-      friendly='endpoint سرویس تغییر کرده یا موقتاً منتشر نشده است.';
-    else if(/network|fetch|connection|load/i.test(raw))
-      friendly='ارتباط مرورگر با Hugging Face برقرار نشد.';
-    vtonSetStatus('پرو انجام نشد: '+friendly,'error');
+    await navigator.clipboard.writeText(preparedTryonPrompt);
+    chatgptTryonStatus('متن پرو کپی شد.','success');
+  }catch{
+    chatgptTryonStatus('مرورگر اجازه کپی خودکار نداد.','error');
   }
+}
+
+function savePreparedSetImage(){
+  if(!preparedTryonBlob || !preparedTryonUrl){
+    chatgptTryonStatus('هنوز تصویر ست آماده نشده است.','error'); return;
+  }
+  const a=document.createElement('a');
+  a.href=preparedTryonUrl;
+  a.download=`wardrobe-set-${new Date().toISOString().replace(/[:.]/g,'-')}.jpg`;
+  document.body.appendChild(a); a.click(); a.remove();
+  chatgptTryonStatus('فایل تصویر برای ذخیره آماده شد.','success');
+}
+
+async function sharePreparedSetImage(){
+  if(!preparedTryonBlob){
+    chatgptTryonStatus('هنوز تصویر ست آماده نشده است.','error'); return;
+  }
+  const file=new File([preparedTryonBlob],`wardrobe-set-${Date.now()}.jpg`,{type:'image/jpeg'});
+  if(navigator.canShare?.({files:[file]}) && navigator.share){
+    try{
+      await navigator.share({
+        title:'Wardrobe Set',
+        text:preparedTryonPrompt,
+        files:[file]
+      });
+      chatgptTryonStatus('Share Sheet باز شد.','success');
+    }catch(e){
+      if(e?.name!=='AbortError') chatgptTryonStatus('Share انجام نشد.','error');
+    }
+  } else {
+    savePreparedSetImage();
+    chatgptTryonStatus('این مرورگر Share فایل را پشتیبانی نکرد؛ فایل برای ذخیره آماده شد.','');
+  }
+}
+
+function openDedicatedTryonChat(){
+  if(preparedTryonPrompt){
+    navigator.clipboard?.writeText(preparedTryonPrompt).catch(()=>{});
+  }
+  window.open(DEDICATED_TRYON_CHAT_URL,'_blank','noopener,noreferrer');
 }
 
